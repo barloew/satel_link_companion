@@ -7,14 +7,19 @@ breach directly from the diagnostic **Last breach** sensor.
 All three carry a `partition` (the Satel partition number) and, where relevant, a
 `zones` list. Each zone is `{"number": <int>, "name": <str>, "function": <str|null>}`.
 
+> The notify examples use `notify.send_message`, the entity notify action
+> ([docs](https://www.home-assistant.io/integrations/notify/)). Replace
+> `notify.your_notifier` with one of your own notify entities (for example your
+> mobile app or `notify.persistent_notification`).
+
 ---
 
 ## `satel_link_companion_breach`
 
 Fired when a partition becomes **triggered** (an alarm). It reports every zone
-that was violated in the lookback window just before the trigger — the "who set
-it off" snapshot. The window is the value you set under *Home Assistant
-bewakingsvenster* (system-wide, or per partition).
+that was violated in the guard-time window just before the trigger — the "who set
+it off" snapshot. The window is the value you set under *Set the Home Assistant
+guard time window for Satel* (system-wide, or per partition).
 
 ```yaml
 event_type: satel_link_companion_breach
@@ -22,7 +27,7 @@ data:
   partition: 1
   window_s: 8.0
   zones:
-    - { number: 23, name: "Woonkamer", function: "Interior" }
+    - { number: 23, name: "Living room", function: "Interior" }
     - { number: 27, name: "Garage", function: "Interior" }
 ```
 
@@ -35,8 +40,9 @@ automation:
       - trigger: event
         event_type: satel_link_companion_breach
     actions:
-      - action: notify.mobile_app
+      - action: notify.send_message
         data:
+          entity_id: notify.your_notifier
           title: "Alarm in partition {{ trigger.event.data.partition }}"
           message: >
             {{ trigger.event.data.zones | map(attribute='name') | join(', ') }}
@@ -59,7 +65,7 @@ event_type: satel_link_companion_arm_blocked
 data:
   partition: 1
   zones:
-    - { number: 24, name: "Achterdeur", function: "Delay" }
+    - { number: 24, name: "Back door", function: "Delay" }
 ```
 
 Example — tell the user why arming did nothing:
@@ -71,10 +77,11 @@ automation:
       - trigger: event
         event_type: satel_link_companion_arm_blocked
     actions:
-      - action: notify.mobile_app
+      - action: notify.send_message
         data:
+          entity_id: notify.your_notifier
           message: >
-            Kan partitie {{ trigger.event.data.partition }} niet inschakelen —
+            Cannot arm partition {{ trigger.event.data.partition }} —
             open: {{ trigger.event.data.zones | map(attribute='name') | join(', ') }}
 ```
 
@@ -88,9 +95,9 @@ rolled back whatever it already armed (so the system is never left half-armed).
 ```yaml
 event_type: satel_link_companion_arm_failed
 data:
-  partition: 2          # the partition that failed
-  reason: "no_confirmation"   # or "blocked"
-  zones: []             # present only when reason == "blocked"
+  partition: 2               # the partition that failed
+  reason: "no_confirmation"  # or "blocked"
+  zones: []                  # present only when reason == "blocked"
 ```
 
 `reason` is:
@@ -108,9 +115,10 @@ automation:
       - trigger: event
         event_type: satel_link_companion_arm_failed
     actions:
-      - action: notify.mobile_app
+      - action: notify.send_message
         data:
+          entity_id: notify.your_notifier
           message: >
-            Inschakelen mislukt bij partitie {{ trigger.event.data.partition }}
-            ({{ trigger.event.data.reason }}). Alles is teruggedraaid.
+            Arming failed for partition {{ trigger.event.data.partition }}
+            ({{ trigger.event.data.reason }}). Everything was rolled back.
 ```

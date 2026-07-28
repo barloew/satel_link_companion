@@ -1,5 +1,7 @@
 # Satel Link Companion
 
+<img src="https://raw.githubusercontent.com/barloew/satel_link_companion/main/custom_components/satel_link_companion/brand/icon.png" alt="Satel Link Companion" width="96" align="right" />
+
 A Home Assistant companion for the Satel Integra Panel. It links Home Assistant sensors into
 the panel as real, armed Satel zones, bundles roller-shutter output pairs into a single
 Home Assistant `cover`, and exposes one HomeKit-compatible master alarm panel that arms and
