@@ -1,0 +1,236 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Satel Link Companion",
+        "description": "Found a {base_domain} integration at {host} with {zones} zones and {outputs} outputs. Satel Link Companion will leverage it.\n\nSelect submit to continue."
+      },
+      "manual": {
+        "title": "Connect to the Satel Integra Panel",
+        "description": "No Satel base integration was found. Enter the ETHM connection details.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "code": "User code (only needed for switchable outputs)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Satel Link Companion is already configured for this Satel Integra Panel."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Satel Link Companion",
+        "description": "What would you like to do?",
+        "menu_options": {
+          "discover": "Map Satel Integra system structure",
+          "settings": "Set Home Assistant guard time window for Satel"
+        }
+      },
+      "discover": {
+        "title": "Map Satel Integra system structure",
+        "description": "The Satel base integration is briefly disconnected to map the Satel Integra system structure (the ETHM allows one connection at a time), then reconnected. The mapping takes about 2 minutes. Keep this window open during mapping."
+      },
+      "settings": {
+        "title": "Set the Home Assistant guard time window for Satel partition and zone violations",
+        "description": "When a Satel partition is violated, the Home Assistant guard time window reports each Satel zone that was violated in the seconds prior. Set that time window here — system-wide, and optionally per partition (leave blank to use the system-wide value).",
+        "data": {
+          "breach_lookback_s": "Guard time window (seconds)",
+          "lookback_p1": "Partition 1 — time window (seconds)",
+          "lookback_p2": "Partition 2 — time window (seconds)",
+          "lookback_p3": "Partition 3 — time window (seconds)",
+          "lookback_p4": "Partition 4 — time window (seconds)",
+          "lookback_p5": "Partition 5 — time window (seconds)",
+          "lookback_p6": "Partition 6 — time window (seconds)",
+          "lookback_p7": "Partition 7 — time window (seconds)",
+          "lookback_p8": "Partition 8 — time window (seconds)",
+          "lookback_p9": "Partition 9 — time window (seconds)",
+          "lookback_p10": "Partition 10 — time window (seconds)",
+          "lookback_p11": "Partition 11 — time window (seconds)",
+          "lookback_p12": "Partition 12 — time window (seconds)",
+          "lookback_p13": "Partition 13 — time window (seconds)",
+          "lookback_p14": "Partition 14 — time window (seconds)",
+          "lookback_p15": "Partition 15 — time window (seconds)",
+          "lookback_p16": "Partition 16 — time window (seconds)",
+          "lookback_p17": "Partition 17 — time window (seconds)",
+          "lookback_p18": "Partition 18 — time window (seconds)",
+          "lookback_p19": "Partition 19 — time window (seconds)",
+          "lookback_p20": "Partition 20 — time window (seconds)",
+          "lookback_p21": "Partition 21 — time window (seconds)",
+          "lookback_p22": "Partition 22 — time window (seconds)",
+          "lookback_p23": "Partition 23 — time window (seconds)",
+          "lookback_p24": "Partition 24 — time window (seconds)",
+          "lookback_p25": "Partition 25 — time window (seconds)",
+          "lookback_p26": "Partition 26 — time window (seconds)",
+          "lookback_p27": "Partition 27 — time window (seconds)",
+          "lookback_p28": "Partition 28 — time window (seconds)",
+          "lookback_p29": "Partition 29 — time window (seconds)",
+          "lookback_p30": "Partition 30 — time window (seconds)",
+          "lookback_p31": "Partition 31 — time window (seconds)",
+          "lookback_p32": "Partition 32 — time window (seconds)"
+        }
+      }
+    },
+    "error": {
+      "discovery_failed": "Could not scan the Satel Integra Panel. Check that the base integration is connected and that no other client holds the integration port."
+    }
+  },
+  "selector": {
+    "forwarding": {
+      "options": {
+        "always": "Continuously monitored (smoke, CO, gas, water)",
+        "armed_only": "Only while the partition is armed (motion, presence, doors, windows)",
+        "entry_delay": "With entry delay"
+      }
+    }
+  },
+  "services": {
+    "check_arm": {
+      "name": "Pre-arm check",
+      "description": "Active pre-arm check for a partition. Returns the Satel burglary zones that are currently violated and would block arming, and fires the satel_link_companion_arm_blocked event when there are any.",
+      "fields": {
+        "partition": {
+          "name": "Partition",
+          "description": "The Satel partition number to check."
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "link": {
+      "initiate_flow": {
+        "user": "HA source sensor → Satel zone"
+      },
+      "entry_type": "Link",
+      "step": {
+        "user": {
+          "title": "Add link — select how it actuates the zone",
+          "description": "How should the Home Assistant source sensor actuate the Satel zone?\n\n• Continuously — breached sensor violates the zone and always triggers an alarm, even when the partition is disarmed. Best for monitoring heat / smoke / gas / moisture hazards.\n• Via partition arming — sensor breach only triggers an alarm after the partition is armed. Best for burglary protection.\n• Via partition arming — with entry/exit delay — as above, but sensor breach status is blocked during a configurable entry/exit delay. Best for entry/exit zones.",
+          "data": {
+            "mode": "Actuation mode"
+          }
+        },
+        "source": {
+          "title": "Link — step 1/3: select the HA source sensor",
+          "description": "Actuation mode: {mode}.",
+          "data": {
+            "source": "Home Assistant source sensor"
+          }
+        },
+        "output_zone": {
+          "title": "Link — step 2/3: select the Satel switchable output and the Satel zone that follows it",
+          "description": "Actuation mode: {mode}.\n\nSelect the Satel switchable output and the Satel zone already connected to follow that output.",
+          "data": {
+            "output": "Satel switchable output",
+            "zone": "Satel zone that follows the output",
+            "entry_delay_s": "Entry/exit delay (seconds)",
+            "min_on_s": "Minimum on-time (seconds)",
+            "invert": "Invert polarity"
+          }
+        },
+        "review": {
+          "title": "Link — step 3/3: review",
+          "description": "Actuation mode: {mode}.\n\nReview the link.\n\n{findings}"
+        },
+        "reconfigure": {
+          "title": "Reconfigure link",
+          "data": {
+            "mode": "Actuation mode",
+            "source": "Home Assistant source sensor",
+            "output": "Satel switchable output",
+            "zone": "Satel zone that follows the output",
+            "entry_delay_s": "Entry/exit delay (seconds)",
+            "min_on_s": "Minimum on-time (seconds)",
+            "invert": "Invert polarity"
+          }
+        }
+      },
+      "error": {
+        "link_has_errors": "This link cannot be created yet — see the problems above.",
+        "already_configured": "This Satel output already has a link."
+      },
+      "abort": {
+        "run_discovery_first": "Map the Satel Integra system structure first (menu: Map Satel Integra system structure).",
+        "no_linkable_outputs": "No linkable (switchable) outputs found. Add a MONO or BI output in DloadX, then map again."
+      }
+    },
+    "control": {
+      "initiate_flow": {
+        "user": "HA roller shutter"
+      },
+      "entry_type": "HA roller shutter",
+      "step": {
+        "user": {
+          "title": "Add HA roller shutter",
+          "description": "Select a Satel roller shutter: its output pair (up/down) becomes one cover in Home Assistant with open / close / stop.\n\nPlain switchable outputs and read-only outputs are not created here — your Satel base integration (satel_integra / ha_satel_integra_ext) already provides those. Satel Link Companion references them instead of duplicating.",
+          "data": {
+            "target": "Roller shutter"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "This Satel roller shutter is already added."
+      },
+      "abort": {
+        "run_discovery_first": "Map the Satel Integra system structure first (menu: Map Satel Integra system structure).",
+        "no_shutters": "No roller-shutter outputs found. Add a roller shutter (outputs - type 105/106) in DloadX, then map again."
+      }
+    },
+    "master": {
+      "initiate_flow": {
+        "user": "HA master alarm panel"
+      },
+      "entry_type": "HA master alarm panel",
+      "step": {
+        "user": {
+          "title": "Add HA master alarm panel",
+          "description": "One (HomeKit compatible) master alarm panel that arms and disarms several Satel Integra partitions as a single unit. It uses the default code from satel_integra / ha_satel_integra_ext or HomeKit for arming.\n\nFor each (HomeKit-compatible) mode, enter the Satel partitions, comma-separated, in arm order. Available partitions: {partitions}.\n\n• Home → alarm_arm_home (the Satel mode follows your arm_home_mode setting)\n• Away → alarm_arm_away\n• Night → alarm_arm_night\n\nLeave a mode empty to not offer it. 'Off' disarms every partition used, in numeric order.",
+          "data": {
+            "name": "Name",
+            "home_partitions": "Home — partitions (in order)",
+            "away_partitions": "Away — partitions (in order)",
+            "night_partitions": "Night — partitions (in order)"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure HA master alarm panel",
+          "description": "One (HomeKit compatible) master alarm panel that arms and disarms several Satel Integra partitions as a single unit. It uses the default code from satel_integra / ha_satel_integra_ext or HomeKit for arming.\n\nFor each (HomeKit-compatible) mode, enter the Satel partitions, comma-separated, in arm order. Available partitions: {partitions}.\n\n• Home → alarm_arm_home (the Satel mode follows your arm_home_mode setting)\n• Away → alarm_arm_away\n• Night → alarm_arm_night\n\nLeave a mode empty to not offer it. 'Off' disarms every partition used, in numeric order.",
+          "data": {
+            "name": "Name",
+            "home_partitions": "Home — partitions (in order)",
+            "away_partitions": "Away — partitions (in order)",
+            "night_partitions": "Night — partitions (in order)"
+          }
+        }
+      },
+      "error": {
+        "invalid_partitions": "Invalid partition input. Use valid partition numbers, comma-separated.",
+        "no_mode": "Fill in at least one mode (Home/Away/Night) with partitions."
+      },
+      "abort": {
+        "run_discovery_first": "Map the Satel Integra structure first (menu: Map Satel Integra system structure).",
+        "no_partitions": "No partitions found. Assign zones to partitions in DloadX, then map again."
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "link_forwarding": {
+        "name": "Forwarding"
+      }
+    },
+    "sensor": {
+      "last_breach": {
+        "name": "Last breach"
+      },
+      "last_arm_blocked": {
+        "name": "Last arm blocked"
+      },
+      "last_arm_failed": {
+        "name": "Last arm failed"
+      }
+    }
+  }
+}

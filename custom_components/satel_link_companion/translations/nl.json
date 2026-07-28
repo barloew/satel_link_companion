@@ -1,0 +1,236 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Satel Link Companion",
+        "description": "Er is een {base_domain}-integratie gevonden op {host} met {zones} zones en {outputs} uitgangen. Satel Link Companion bouwt hierop voort.\n\nKies verzenden om door te gaan."
+      },
+      "manual": {
+        "title": "Verbinden met de Satel Integra-centrale",
+        "description": "Geen Satel-basisintegratie gevonden. Voer de ETHM-verbindingsgegevens in.",
+        "data": {
+          "host": "Host",
+          "port": "Poort",
+          "code": "Gebruikerscode (alleen nodig voor schakelbare uitgangen)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Satel Link Companion is al geconfigureerd voor deze Satel Integra-centrale."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Satel Link Companion",
+        "description": "Wat wil je doen?",
+        "menu_options": {
+          "discover": "Satel Integra systeemstructuur inventariseren",
+          "settings": "Home Assistant bewakingstijdvenster voor Satel instellen"
+        }
+      },
+      "discover": {
+        "title": "Satel Integra systeemstructuur inventariseren",
+        "description": "Hiervoor wordt de basisintegratie kort losgekoppeld om de Satel Integra-centrale te scannen (de ETHM staat één verbinding tegelijk toe), daarna weer verbonden. De inventarisatie duurt ongeveer 2 minuten. Laat dit venster open gedurende de inventarisatie."
+      },
+      "settings": {
+        "title": "Home Assistant bewakingstijdvenster voor Satel partitie en zone schendingen instellen",
+        "description": "Als een Satel partitie wordt geschonden, rapporteert het Home Assistant bewakingstijdvenster elke Satel zone die in de laatste seconden daaraan voorafgaand geschonden was. Stel dat tijdvenster hier in — systeem-breed, en optioneel per partitie (laat leeg om de systeem-brede waarde te gebruiken).",
+        "data": {
+          "breach_lookback_s": "Bewakingstijdvenster (seconden)",
+          "lookback_p1": "Partitie 1 — tijdvenster (seconden)",
+          "lookback_p2": "Partitie 2 — tijdvenster (seconden)",
+          "lookback_p3": "Partitie 3 — tijdvenster (seconden)",
+          "lookback_p4": "Partitie 4 — tijdvenster (seconden)",
+          "lookback_p5": "Partitie 5 — tijdvenster (seconden)",
+          "lookback_p6": "Partitie 6 — tijdvenster (seconden)",
+          "lookback_p7": "Partitie 7 — tijdvenster (seconden)",
+          "lookback_p8": "Partitie 8 — tijdvenster (seconden)",
+          "lookback_p9": "Partitie 9 — tijdvenster (seconden)",
+          "lookback_p10": "Partitie 10 — tijdvenster (seconden)",
+          "lookback_p11": "Partitie 11 — tijdvenster (seconden)",
+          "lookback_p12": "Partitie 12 — tijdvenster (seconden)",
+          "lookback_p13": "Partitie 13 — tijdvenster (seconden)",
+          "lookback_p14": "Partitie 14 — tijdvenster (seconden)",
+          "lookback_p15": "Partitie 15 — tijdvenster (seconden)",
+          "lookback_p16": "Partitie 16 — tijdvenster (seconden)",
+          "lookback_p17": "Partitie 17 — tijdvenster (seconden)",
+          "lookback_p18": "Partitie 18 — tijdvenster (seconden)",
+          "lookback_p19": "Partitie 19 — tijdvenster (seconden)",
+          "lookback_p20": "Partitie 20 — tijdvenster (seconden)",
+          "lookback_p21": "Partitie 21 — tijdvenster (seconden)",
+          "lookback_p22": "Partitie 22 — tijdvenster (seconden)",
+          "lookback_p23": "Partitie 23 — tijdvenster (seconden)",
+          "lookback_p24": "Partitie 24 — tijdvenster (seconden)",
+          "lookback_p25": "Partitie 25 — tijdvenster (seconden)",
+          "lookback_p26": "Partitie 26 — tijdvenster (seconden)",
+          "lookback_p27": "Partitie 27 — tijdvenster (seconden)",
+          "lookback_p28": "Partitie 28 — tijdvenster (seconden)",
+          "lookback_p29": "Partitie 29 — tijdvenster (seconden)",
+          "lookback_p30": "Partitie 30 — tijdvenster (seconden)",
+          "lookback_p31": "Partitie 31 — tijdvenster (seconden)",
+          "lookback_p32": "Partitie 32 — tijdvenster (seconden)"
+        }
+      }
+    },
+    "error": {
+      "discovery_failed": "Kon de Satel Integra-centrale niet scannen. Controleer of de Satel basisintegratie verbonden is en dat geen andere client de integratiepoort bezet."
+    }
+  },
+  "selector": {
+    "forwarding": {
+      "options": {
+        "always": "Permanent bewaakt (rook, CO, gas, water)",
+        "armed_only": "Alleen als de partitie is ingeschakeld (beweging, aanwezigheid, deuren, ramen)",
+        "entry_delay": "Met ingangsvertraging"
+      }
+    }
+  },
+  "services": {
+    "check_arm": {
+      "name": "Inschakeling controleren",
+      "description": "Actieve controle vóór inschakeling van een partitie. Geeft de inbraakzones terug die op dit moment geschonden zijn en de inschakeling zouden blokkeren, en vuurt het satel_link_companion_arm_blocked-event als die er zijn.",
+      "fields": {
+        "partition": {
+          "name": "Partitie",
+          "description": "Het Satel-partitienummer om te controleren."
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "link": {
+      "initiate_flow": {
+        "user": "HA-bronsensor → Satel-zone"
+      },
+      "entry_type": "Koppeling",
+      "step": {
+        "user": {
+          "title": "Koppeling toevoegen — selecteer de aansturing",
+          "description": "Hoe wil je dat de Home Assistant-bronsensor de Satel-zone aanstuurt?\n\n• Permanent — sensor activiteit schendt de zone en veroorzaakt te allen tijde een alarm, ook wanneer partitie is uitgeschakeld. Meest geschikt voor bewaking van hitte / rook / gas / vloeistof gevaar.\n• Via partitie in-/uitschakeling — sensor activiteit veroorzaakt alleen ná inschakeling van de partitie een alarm. Meest geschikt voor inbraakbeveiliging.\n• Via partitie in-/uitschakeling — en na in-/uitschakelvertraging — als hierboven, maar sensor activiteit wordt gedurende een instelbare in-/uitloopvertraging tegengehouden. Meest geschikt voor in- en uitloopzones.",
+          "data": {
+            "mode": "Aansturing"
+          }
+        },
+        "source": {
+          "title": "Koppeling — stap 1/3: selecteer de HA-bronsensor",
+          "description": "Aansturing: {mode}.",
+          "data": {
+            "source": "Home Assistant-bronsensor"
+          }
+        },
+        "output_zone": {
+          "title": "Koppeling — stap 2/3: selecteer de Satel schakelbare uitgang en de daardoor gevolgde Satel-zone",
+          "description": "Aansturing: {mode}.\n\nSelecteer de Satel schakelbare uitgang en de reeds daaraan gekoppelde Satel-zone die deze uitgang volgt.",
+          "data": {
+            "output": "Satel schakelbare uitgang",
+            "zone": "Gevolgde Satel-zone",
+            "entry_delay_s": "In-/uitloopvertraging (seconden)",
+            "min_on_s": "Minimale inschakel-tijd (seconden)",
+            "invert": "Polariteit omkeren"
+          }
+        },
+        "review": {
+          "title": "Koppeling — stap 3/3: controleren",
+          "description": "Aansturing: {mode}.\n\nControleer de koppeling.\n\n{findings}"
+        },
+        "reconfigure": {
+          "title": "Koppeling herconfigureren",
+          "data": {
+            "mode": "Aansturing",
+            "source": "Home Assistant-bronsensor",
+            "output": "Satel schakelbare uitgang",
+            "zone": "Satel-zone die uitgang volgt",
+            "entry_delay_s": "In-/uitloopvertraging (seconden)",
+            "min_on_s": "Minimale inschakel-tijd (seconden)",
+            "invert": "Polariteit omkeren"
+          }
+        }
+      },
+      "error": {
+        "link_has_errors": "Deze koppeling kan nog niet worden aangemaakt — zie de problemen hierboven.",
+        "already_configured": "Deze Satel-uitgang heeft al een koppeling."
+      },
+      "abort": {
+        "run_discovery_first": "Inventariseer eerst de Satel Integra systeemstructuur (menu: Satel Integra systeemstructuur inventariseren).",
+        "no_linkable_outputs": "Geen koppelbare (schakelbare) uitgangen gevonden. Maak een MONO- of BI-uitgang in DloadX en inventariseer opnieuw."
+      }
+    },
+    "control": {
+      "initiate_flow": {
+        "user": "HA-rolluik"
+      },
+      "entry_type": "HA-rolluik",
+      "step": {
+        "user": {
+          "title": "HA-rolluik toevoegen",
+          "description": "Selecteer een Satel-rolluik: het uitgangenpaar (op/neer) wordt in Home Assistant één cover met openen / sluiten / stoppen.\n\nLosse schakelbare uitgangen en alleen-lezen uitgangen maak je hier niet aan — die levert je Satel-basisintegratie (satel_integra / ha_satel_integra_ext) al. Satel Link Companion verwijst daarnaar in plaats van ze te dupliceren.",
+          "data": {
+            "target": "Rolluik"
+          }
+        }
+      },
+      "error": {
+        "already_configured": "Dit Satel-rolluik is al toegevoegd."
+      },
+      "abort": {
+        "run_discovery_first": "Inventariseer eerst de Satel Integra systeemstructuur (menu: Satel Integra systeemstructuur inventariseren).",
+        "no_shutters": "Geen rolluik-uitgangen gevonden. Maak een rolluik (uitgangen - type 105/106) aan in DloadX en inventariseer opnieuw."
+      }
+    },
+    "master": {
+      "initiate_flow": {
+        "user": "HA-master-alarmpaneel"
+      },
+      "entry_type": "HA-master-alarmpaneel",
+      "step": {
+        "user": {
+          "title": "HA-master-alarmpaneel toevoegen",
+          "description": "Eén (HomeKit compatibel) master-alarmpaneel dat meerdere Satel Integra-partities als geheel in- en uitschakelt. Voor het schakelen gebruikt het paneel de standaard-code uit satel_integra / ha_satel_integra_ext of HomeKit.\n\nVoer per (HomeKit-compatibele) inschakelmodus de Satel-partities in, gescheiden door komma's, in inschakelvolgorde. Beschikbare partities: {partitions}.\n\n• Thuis → alarm_arm_home (de Satel-modus volgt je arm_home_mode-instelling)\n• Afwezig → alarm_arm_away\n• Nacht → alarm_arm_night\n\nLaat een modus leeg om die niet aan te bieden. 'Uit' schakelt alle gebruikte partities uit, in numerieke volgorde.",
+          "data": {
+            "name": "Naam",
+            "home_partitions": "Thuis — partities (in volgorde)",
+            "away_partitions": "Afwezig — partities (in volgorde)",
+            "night_partitions": "Nacht — partities (in volgorde)"
+          }
+        },
+        "reconfigure": {
+          "title": "HA-master-alarmpaneel herconfigureren",
+          "description": "Eén (HomeKit compatibel) master-alarmpaneel dat meerdere Satel Integra-partities als geheel in- en uitschakelt. Voor het schakelen gebruikt het paneel de standaard-code uit satel_integra / ha_satel_integra_ext of HomeKit.\n\nVoer per (HomeKit-compatibele) inschakelmodus de Satel-partities in, gescheiden door komma's, in inschakelvolgorde. Beschikbare partities: {partitions}.\n\n• Thuis → alarm_arm_home (de Satel-modus volgt je arm_home_mode-instelling)\n• Afwezig → alarm_arm_away\n• Nacht → alarm_arm_night\n\nLaat een modus leeg om die niet aan te bieden. 'Uit' schakelt alle gebruikte partities uit, in numerieke volgorde.",
+          "data": {
+            "name": "Naam",
+            "home_partitions": "Thuis — partities (in volgorde)",
+            "away_partitions": "Afwezig — partities (in volgorde)",
+            "night_partitions": "Nacht — partities (in volgorde)"
+          }
+        }
+      },
+      "error": {
+        "invalid_partitions": "Ongeldige partitie-invoer. Gebruik geldige partitienummers, gescheiden door komma's.",
+        "no_mode": "Vul minstens één modus (Thuis/Afwezig/Nacht) met partities in."
+      },
+      "abort": {
+        "run_discovery_first": "Inventariseer eerst de Satel Integra-structuur (menu: Satel Integra systeemstructuur inventariseren).",
+        "no_partitions": "Geen partities gevonden. Wijs zones aan partities toe in DloadX en inventariseer opnieuw."
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "link_forwarding": {
+        "name": "Doorgifte"
+      }
+    },
+    "sensor": {
+      "last_breach": {
+        "name": "Laatste schending"
+      },
+      "last_arm_blocked": {
+        "name": "Laatste inschakelblokkade"
+      },
+      "last_arm_failed": {
+        "name": "Laatste inschakelfout"
+      }
+    }
+  }
+}

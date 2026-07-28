@@ -1,0 +1,28 @@
+{
+  "findings": {
+    "output_not_switchable": "This output has function \"{function}\", which makes it a non-switchable output: the Satel Integra Panel actuates it and Home Assistant can only read it. It cannot be linked. Select a switchable output with function 24 (Mono Switch) or 25 (Bi Switch), or create one in DLOADX.",
+    "wiring_not_follow_output": "This zone has wiring type \"{wiring}\". To link it, the wiring type must be 8 (Follow output), pointing at this output.",
+    "not_always_monitored": "A \"{device_class}\" sensor belongs on a continuously monitored zone. This zone uses function \"{function}\" and only triggers an alarm while the partition is armed — so it would stay silent during a detected hazard when the partition is unarmed (Alarm Panel switched off). Use zone function {expected_number} ({expected}).",
+    "unexpectedly_always_monitored": "This zone is continuously monitored (\"{function}\"), so a \"{device_class}\" sensor will also trigger an alarm while the partition is unarmed (Alarm Panel switched off). Is that intended?",
+    "polarity_unverifiable": "Satel Link Companion cannot verify Polarity (DLOADX option POL.+) because Satel Integra does not expose it. Polarity however must be set (correctly), even for virtual outputs. Satel Link Companion checks it passively once the link is active."
+  },
+  "checks": {
+    "coherence_ok": "Output inactive and zone at rest: coherent.",
+    "coherence_not_at_rest": "The output is switched on; the coherence check needs the link at rest.",
+    "polarity_inverted": "The zone follows the output, but inverted.",
+    "not_following": "The zone does not react to the output at all.",
+    "not_bypassable": "Zone {zone} could not be bypassed, so the test would trigger a real alarm.",
+    "link_ok": "The zone follows the output correctly.",
+    "inconclusive": "No conclusive result."
+  },
+  "remedies": {
+    "fix_polarity": "Correct the POL.+ option of the output in DLOADX, or enable \"Invert\" on this link.",
+    "set_wiring_follow_output": "In DLOADX, set the wiring type of zone {zone} to 8 (Follow output) and point it at output {output}.",
+    "allow_bypass": "In DLOADX, turn off the \"not bypassable\" option for this zone."
+  },
+  "forwarding": {
+    "always": "Continuously monitored — the Satel Integra Panel monitors this zone at all times and triggers an on violation even when the partition is not armed. Intended for smoke, CO, gas and water leakage hazards.",
+    "armed_only": "Only while armed — the sensor state is forwarded only while the partition this zone belongs to is armed. Intended for motion, presence, doors and windows, which must not trigger an alarm when breached, while monitored in Home Assistant but not armed in Satel Integra.",
+    "entry_delay": "With entry delay — on arming, Satel Link Companion starts the controlled entry delay before forwarding a violation. Disarming in time prevents triggering of the alarm."
+  }
+}
