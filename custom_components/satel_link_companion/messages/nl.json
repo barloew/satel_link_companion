@@ -22,7 +22,7 @@
   },
   "forwarding": {
     "always": "Permanent bewaakt — de status van deze zone wordt ononderbroken door Satel Integra bewaakt en activeert ook een alarm bij schending als de partitie niet is ingeschakeld. Bedoeld voor rook, CO, gas en waterlekkage gevaren.",
-    "armed_only": "Alleen als ingeschakeld — de status wordt alleen doorgegeven zolang de partitie waartoe deze zone behoort is ingeschakeld. Bedoeld voor beweging, aanwezigheid, deuren en ramen, die geen alarm mogen activeren bij schending terwijl ze wel in Home Assistant worden bewaakt maar niet in Satel Integra zijn ingeschakeld.",
+    "armed_only": "Alleen als ingeschakeld — de status wordt alleen doorgegeven zolang de partitie waartoe deze zone behoort is ingeschakeld. Bedoeld voor beweging, aanwezigheid, deuren en ramen, die geen alarm mogen activeren bij schending terwijl ze wel in Home Assistant worden bewaakt maar hun partitie niet in Satel Integra is ingeschakeld.",
     "entry_delay": "Met ingangsvertraging — bij inschakeling van de partitie start de door Satel Link Companion gecontroleerde ingangsvertraging van de statusdoorgifte. Tijdige uitschakeling voorkomt activering van het alarm."
   }
 }

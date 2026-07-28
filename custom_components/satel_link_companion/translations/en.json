@@ -7,7 +7,7 @@
       },
       "manual": {
         "title": "Connect to the Satel Integra Panel",
-        "description": "No Satel base integration was found. Enter the ETHM connection details.",
+        "description": "No Satel base integration was found. Enter the ETHM-1 connection details.",
         "data": {
           "host": "Host",
           "port": "Port",
@@ -31,7 +31,7 @@
       },
       "discover": {
         "title": "Map Satel Integra system structure",
-        "description": "The Satel base integration is briefly disconnected to map the Satel Integra system structure (the ETHM allows one connection at a time), then reconnected. The mapping takes about 2 minutes. Keep this window open during mapping."
+        "description": "The Satel base integration is briefly disconnected to map the Satel Integra system structure (the ETHM-1 allows one connection at a time), then reconnected. The mapping takes about 2 minutes. Keep this window open during mapping."
       },
       "settings": {
         "title": "Set the Home Assistant guard time window for Satel partition and zone violations",

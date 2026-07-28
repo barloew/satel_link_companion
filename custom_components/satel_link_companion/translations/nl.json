@@ -7,7 +7,7 @@
       },
       "manual": {
         "title": "Verbinden met de Satel Integra-centrale",
-        "description": "Geen Satel-basisintegratie gevonden. Voer de ETHM-verbindingsgegevens in.",
+        "description": "Geen Satel-basisintegratie gevonden. Voer de ETHM-1-verbindingsgegevens in.",
         "data": {
           "host": "Host",
           "port": "Poort",
@@ -31,7 +31,7 @@
       },
       "discover": {
         "title": "Satel Integra systeemstructuur inventariseren",
-        "description": "Hiervoor wordt de basisintegratie kort losgekoppeld om de Satel Integra-centrale te scannen (de ETHM staat één verbinding tegelijk toe), daarna weer verbonden. De inventarisatie duurt ongeveer 2 minuten. Laat dit venster open gedurende de inventarisatie."
+        "description": "Hiervoor wordt de basisintegratie kort losgekoppeld om de Satel Integra-centrale te scannen (de ETHM-1 staat één verbinding tegelijk toe), daarna weer verbonden. De inventarisatie duurt ongeveer 2 minuten. Laat dit venster open gedurende de inventarisatie."
       },
       "settings": {
         "title": "Home Assistant bewakingstijdvenster voor Satel partitie en zone schendingen instellen",

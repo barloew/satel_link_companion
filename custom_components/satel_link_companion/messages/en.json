@@ -22,7 +22,7 @@
   },
   "forwarding": {
     "always": "Continuously monitored — the Satel Integra Panel monitors this zone at all times and triggers an on violation even when the partition is not armed. Intended for smoke, CO, gas and water leakage hazards.",
-    "armed_only": "Only while armed — the sensor state is forwarded only while the partition this zone belongs to is armed. Intended for motion, presence, doors and windows, which must not trigger an alarm when breached, while monitored in Home Assistant but not armed in Satel Integra.",
+    "armed_only": "Only while armed — the sensor state is forwarded only while the partition this zone belongs to is armed. Intended for motion, presence, doors and windows, which must not trigger an alarm when breached, while monitored in Home Assistant but their partition is not armed in Satel Integra.",
     "entry_delay": "With entry delay — on arming, Satel Link Companion starts the controlled entry delay before forwarding a violation. Disarming in time prevents triggering of the alarm."
   }
 }

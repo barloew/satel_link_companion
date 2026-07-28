@@ -4,7 +4,7 @@ Satel Link Companion links Home Assistant sensors into the Satel Integra Panel a
 armed Satel zones, and exposes Satel outputs (switches, roller-shutter covers)
 in Home Assistant.
 
-Runtime model: the ETHM accepts one client on the integration port, and the
+Runtime model: the ETHM-1 accepts one client on the integration port, and the
 base integration (satel_integra / ha_satel_integra_ext) owns it. Satel Link Companion
 therefore holds no socket of its own at runtime — it drives the base
 integration's output switches and reads arm state from its alarm_control_panel

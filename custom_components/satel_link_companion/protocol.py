@@ -15,7 +15,7 @@ partition in the protocol — so a partition shown against an output is
 meaningless. A link derives its partition from the zone that follows the
 output, never from the output itself.
 
-Connection note: the ETHM accepts only ONE client at a time on the integration
+Connection note: the ETHM-1 accepts only ONE client at a time on the integration
 port. If the base integration (satel_integra / ha_satel_integra_ext) is
 connected, it owns the socket. Discovery therefore runs once, with the base
 integration briefly unloaded, and the result is cached.

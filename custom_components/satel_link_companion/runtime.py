@@ -159,7 +159,7 @@ class MasterPanel:
 class RuntimeData:
     """Lives on entry.runtime_data. Not persisted.
 
-    Satel Link Companion holds no runtime socket of its own: the ETHM allows one client
+    Satel Link Companion holds no runtime socket of its own: the ETHM-1 allows one client
     and the base integration owns it. So at runtime Satel Link Companion works *through*
     the base integration — driving its output switches, reading arm state from
     its alarm_control_panel entities. `base` holds that resolved context; the

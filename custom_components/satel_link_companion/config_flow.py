@@ -5,7 +5,7 @@ Flow shape:
     1. user step         — confirm we found a base integration (satel_integra /
                            ha_satel_integra_ext) and adopt its host/port/code.
     2. discover step     — run the one-off Satel Integra Panel scan. This briefly unloads the
-                           base integration (the ETHM allows one client), scans,
+                           base integration (the ETHM-1 allows one client), scans,
                            and reloads it. Result is cached on the entry.
     3. create entry      — the merged model is stored; entities and links are
                            configured afterwards from the options flow.
@@ -212,7 +212,7 @@ class SatelLinkOptionsFlow(OptionsFlow):
         """Module A — run the one-off scan.
 
         The scan needs the integration socket, which the base integration holds
-        (the ETHM allows one client). So: unload base -> scan -> reload base.
+        (the ETHM-1 allows one client). So: unload base -> scan -> reload base.
         Confirmed by the user before we interrupt their alarm connection.
         """
         if user_input is None:

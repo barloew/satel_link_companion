@@ -41,9 +41,9 @@ EVENT_ARM_FAILED = "satel_link_companion_arm_failed"
 SERVICE_CHECK_ARM = "check_arm"
 ATTR_PARTITION = "partition"
 
-# --- Integration protocol (ETHM, port 7094) ------------------------------------
+# --- Integration protocol (ETHM-1, port 7094) ------------------------------------
 # Ports 7090 (DLOADX) and 7091 (GuardX) speak a different, closed protocol.
-# The ETHM accepts only ONE client at a time on the integration port.
+# The ETHM-1 accepts only ONE client at a time on the integration port.
 DEFAULT_PORT = 7094
 
 CMD_ZONES_VIOLATED = 0x00
@@ -65,7 +65,7 @@ class DeviceType(IntEnum):
     ZONE = 0x05  # zone *with* partition assignment (byte 19 of the reply)
 
 
-# Discovery pacing. The ETHM command buffer holds roughly 160 slots, so partitions
+# Discovery pacing. The ETHM-1 command buffer holds roughly 160 slots, so partitions
 # +zones and outputs are queried in two separate passes; otherwise the output
 # queries are dropped silently.
 QUERY_INTERVAL = 0.01

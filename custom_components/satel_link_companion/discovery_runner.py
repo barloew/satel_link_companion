@@ -1,6 +1,6 @@
 """Satel Link Companion — running discovery against a live Satel Integra Panel.
 
-The ETHM accepts only one client on the integration port. If a base integration
+The ETHM-1 accepts only one client on the integration port. If a base integration
 is connected it owns that socket, so the one-off scan must:
 
     1. unload the base integration        (free the socket)
@@ -31,7 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 
 CONF_BASE_ENTRY = "base_entry_id"
 
-# The ETHM integration port serves one client at a time. After the base
+# The ETHM-1 integration port serves one client at a time. After the base
 # integration is unloaded (or the discovery socket is closed), the panel needs
 # a moment to release its single slot before the next client connects. Too
 # short and discovery connects while the panel still holds the base's slot,

@@ -6,12 +6,13 @@
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=barloew&repository=satel_link_companion&category=integration)
 
 A Home Assistant companion for the Satel Integra Panel. Satel Link Companion links Home
-Assistant sensors into the Satel Integra Panel as real, armed Satel zones, bundles
+Assistant sensors into the Satel Integra Panel as real Satel zones — supervised by
+the panel and armed together with their partition — bundles
 available Satel roller-shutter output pairs into a single Home Assistant cover unit, and
 lets you expose one (HomeKit-compatible) master alarm panel that arms and disarms several
 Satel Integra partitions as a single unit.
 
-It leverages an existing Satel base integration rather than replacing it. The Satel ETHM
+It leverages an existing Satel base integration rather than replacing it. The Satel ETHM-1
 module accepts only one client on its integration port, so at runtime Satel Link Companion
 holds no connection of its own: it actuates the base integration's output switches and
 reads arm state from its `alarm_control_panel` entities. The only direct connection is a
@@ -25,7 +26,7 @@ Satel Link Companion does **not** duplicate those; it leverages and extends them
 | Satel object | Base integration | Direction | Capability |
 |---|---|---|---|
 | Zone | `binary_sensor` | Satel → HA | monitor a Satel detection / temperature point in Home Assistant |
-| Virtual Zone | `switch` | HA → Satel | actuate a Satel zone from Home Assistant (ETHM-Plus only) |
+| Virtual Zone | `switch` | HA → Satel | actuate a Satel zone from Home Assistant (ETHM-1 Plus only) |
 | Output | `binary_sensor` | Satel → HA | read-only Satel device / event status in Home Assistant |
 | Switchable output | `switch` | HA → Satel | actuate a Satel switch from Home Assistant |
 
@@ -33,7 +34,7 @@ Satel Link Companion does **not** duplicate those; it leverages and extends them
 
 | Built from | Satel Link Companion | Direction | Capability |
 |---|---|---|---|
-| Switchable output + zone that follows it | `link` | HA → Satel | actuate a Satel zone with any Home Assistant sensor (ETHM-compatible) |
+| Switchable output + zone that follows it | `link` | HA → Satel | actuate a Satel zone with any Home Assistant sensor (ETHM-1-compatible) |
 | Switchable output pair | `cover` | HA → Satel | control a Satel roller shutter as a single unit from Home Assistant |
 | Partitions | `alarm_control_panel` | (HomeKit) → HA → Satel | a single alarm-panel tile in Home Assistant (HomeKit compatible) |
 
@@ -110,7 +111,7 @@ Each **link** (from a Home Assistant source sensor) can actuate its Satel zone i
   gas / moisture hazards.
 - **Via partition arming** — a breached source sensor violates the Satel zone, which then
   triggers an alarm only after the partition is armed. Best for burglary protection; in
-  particular a solution for ETHM-based panels that lack the ETHM-Plus Virtual Zone capability.
+  particular a solution for ETHM-1-based panels that lack the ETHM-1 Plus Virtual Zone capability.
 - **Via partition arming — with entry/exit delay** — as above, but breach status is blocked
   during a configurable entry/exit delay. Best for entry/exit zones.
 
@@ -192,7 +193,7 @@ zone returns to rest (off) — never to a spurious alarm.
 A link mirrors its Home Assistant source onto the switchable output: source `on` → output
 actuated (the zone is violated); anything else → output at rest. "Anything else"
 deliberately includes `unavailable` and `unknown`, so a dropped sensor, a Home Assistant
-restart, or an ETHM hiccup returns the zone to rest rather than raising an alarm.
+restart, or an ETHM-1 hiccup returns the zone to rest rather than raising an alarm.
 
 Two edge rules make this robust (mirrored from a hand-tuned production automation):
 
@@ -233,7 +234,7 @@ specially so that walking out and in never false-triggers:
   missed.
 - **Invert.** Corrects the output polarity (DLOADX `POL.+`), which the protocol cannot read;
   an inverted link reports "violated" when the output is off.
-- **No runtime socket.** The ETHM allows one client, so at runtime the companion never
+- **No runtime socket.** The ETHM-1 allows one client, so at runtime the companion never
   connects: it calls the base integration's `switch` services to drive outputs and reads
   partition state from the base `alarm_control_panel` entities, reacting to Home Assistant
   state-change events. The single direct connection is the one-off structure scan.
