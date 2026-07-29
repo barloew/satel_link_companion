@@ -106,6 +106,22 @@ class EventEngine:
         if new_state == STATE_TRIGGERED and previous != STATE_TRIGGERED:
             self._fire_breach(self._partition_of[entity_id])
 
+    def _live_name(self, entity_id: str | None, fallback: str) -> str:
+        """The zone's current friendly name as shown in Home Assistant.
+
+        Resolved live from the entity's state (which composes the device name
+        for has_entity_name integrations, or a user rename), so a rename takes
+        effect without re-running discovery. Falls back to the name captured at
+        discovery when the entity or its friendly name is unavailable.
+        """
+        if entity_id:
+            state = self._hass.states.get(entity_id)
+            if state is not None:
+                friendly = state.attributes.get("friendly_name")
+                if friendly:
+                    return friendly
+        return fallback
+
     @callback
     def _fire_breach(self, partition: int) -> None:
         runtime = self._entry.runtime_data
@@ -116,7 +132,11 @@ class EventEngine:
         payload_zones = [
             {
                 "number": n,
-                "name": zones[n].display_name if n in zones else f"Zone {n}",
+                "name": (
+                    self._live_name(zones[n].entity_id, zones[n].display_name)
+                    if n in zones
+                    else f"Zone {n}"
+                ),
                 "function": zones[n].function_name if n in zones else None,
             }
             for n in sorted(breached)
@@ -151,7 +171,16 @@ class EventEngine:
 
         blockers = find_blockers(partition, runtime.model.zones, is_violated)
         payload = [
-            {"number": b.number, "name": b.name, "function": b.function_name}
+            {
+                "number": b.number,
+                "name": self._live_name(
+                    zone_entities[b.number].entity_id
+                    if b.number in zone_entities
+                    else None,
+                    b.name,
+                ),
+                "function": b.function_name,
+            }
             for b in blockers
         ]
         if payload:

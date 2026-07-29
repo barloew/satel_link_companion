@@ -5,7 +5,9 @@ automations (Settings → Automations → Trigger → *Event*), or read the last
 breach directly from the diagnostic **Last breach** sensor.
 
 All three carry a `partition` (the Satel partition number) and, where relevant, a
-`zones` list. Each zone is `{"number": <int>, "name": <str>, "function": <str|null>}`.
+`zones` list. Each zone is `{"number": <int>, "name": <str>, "function": <str|null>}`, where
+`name` is the zone's current Home Assistant friendly name (resolved live, so a
+rename in Home Assistant takes effect without re-running discovery).
 
 > The notify examples use `notify.send_message`, the entity notify action
 > ([docs](https://www.home-assistant.io/integrations/notify/)). Replace
