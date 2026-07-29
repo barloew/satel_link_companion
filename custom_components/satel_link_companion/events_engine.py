@@ -23,6 +23,9 @@ from typing import TYPE_CHECKING, Callable
 
 from homeassistant.const import STATE_ON
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 
 from .blockers import find_blockers
@@ -122,6 +125,27 @@ class EventEngine:
                     return friendly
         return fallback
 
+    def _live_area(self, entity_id: str | None) -> str | None:
+        """The zone's current area name — from the entity, or inherited from its
+        device — resolved live. Returns None when the zone has no area.
+
+        This is what disambiguates same-named zones (three "Raam" zones become
+        "Raam (Ouderslaapkamer)", "Raam (Logeerkamer)", ...) in notifications.
+        """
+        if not entity_id:
+            return None
+        entity = er.async_get(self._hass).async_get(entity_id)
+        if entity is None:
+            return None
+        area_id = entity.area_id
+        if area_id is None and entity.device_id:
+            device = dr.async_get(self._hass).async_get(entity.device_id)
+            area_id = device.area_id if device else None
+        if area_id is None:
+            return None
+        area = ar.async_get(self._hass).async_get_area(area_id)
+        return area.name if area else None
+
     @callback
     def _fire_breach(self, partition: int) -> None:
         runtime = self._entry.runtime_data
@@ -138,6 +162,7 @@ class EventEngine:
                     else f"Zone {n}"
                 ),
                 "function": zones[n].function_name if n in zones else None,
+                "area": self._live_area(zones[n].entity_id) if n in zones else None,
             }
             for n in sorted(breached)
             if zones.get(n) is None or zones[n].partition in (partition, None)
@@ -180,6 +205,11 @@ class EventEngine:
                     b.name,
                 ),
                 "function": b.function_name,
+                "area": self._live_area(
+                    zone_entities[b.number].entity_id
+                    if b.number in zone_entities
+                    else None
+                ),
             }
             for b in blockers
         ]
