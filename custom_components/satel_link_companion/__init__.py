@@ -41,6 +41,11 @@ from .const import (
 )
 from .events_engine import EventEngine
 from .link_engine import LinkEngine
+from .native_org import (
+    async_apply_areas,
+    async_register_partition_nodes,
+    base_hub_name_area,
+)
 from .registry_ha import find_base_entry, read_existing
 from .runtime import (
     OPT_CONTROLS,
@@ -229,6 +234,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: SatelLinkConfigEntry) ->
         base_entry = find_base_entry(hass)
     if base_entry is not None:
         runtime.base = read_existing(hass, base_entry)
+        # Item 1: the hub device defaults to the base central device's name/area.
+        runtime.base_hub_name, runtime.base_hub_area_id = base_hub_name_area(
+            hass, base_entry
+        )
     else:
         _LOGGER.warning(
             "No Satel base integration found; links cannot forward until one is set up"
@@ -245,7 +254,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: SatelLinkConfigEntry) ->
 
     _async_register_services(hass)
 
+    # Item 3: partition grouping nodes must exist before the link devices are
+    # created, so the links' via_device nests them under their partition.
+    async_register_partition_nodes(hass, entry)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Items 1 + 2: fill in device areas from the base (hub + link devices), only
+    # where the area is still empty so user changes are never overwritten.
+    async_apply_areas(hass, entry)
+
     entry.async_on_unload(entry.add_update_listener(_async_reload_on_change))
     return True
 

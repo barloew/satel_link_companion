@@ -94,6 +94,7 @@ class LinkSubentryFlow(ConfigSubentryFlow):
                 f"({output_name(o.function, self._lang)})",
             )
             for o in model.linkable_outputs()
+            if o.known_in_ha
         ]
 
     def _zone_options(self, model: Any) -> list[selector.SelectOptionDict]:
@@ -104,6 +105,7 @@ class LinkSubentryFlow(ConfigSubentryFlow):
                 f"({zone_name(z.function, self._lang)})",
             )
             for z in model.zones
+            if z.known_in_ha
         ]
 
     def _mode_selector(self) -> selector.SelectSelector:

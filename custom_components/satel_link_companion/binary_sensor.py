@@ -39,18 +39,25 @@ async def async_setup_entry(
     """Create a link-status sensor per link subentry (one per link device)."""
     runtime = entry.runtime_data
     outputs = runtime.base.by_number("output") if runtime.base else {}
+    zones_by_num = {z.number: z for z in runtime.model.zones} if runtime.model else {}
 
     for subentry in entry.subentries.values():
         if subentry.subentry_type not in LINK_SUBENTRY_TYPES:
             continue
         link = Link.from_dict(dict(subentry.data))
         base = outputs.get(link.output_number)
+        # Item 2: the link device defaults to its base zone's name; item 3: it
+        # nests under its partition's grouping node.
+        zone = zones_by_num.get(link.zone_number)
+        device_name = zone.ha_name if zone and zone.ha_name else subentry.title
+        partition = zone.partition if zone else None
         async_add_entities(
             [
                 SatelLinkLinkSensor(
                     entry_id=entry.entry_id,
                     subentry_id=subentry.subentry_id,
-                    device_name=subentry.title,
+                    device_name=device_name,
+                    partition=partition,
                     link=link,
                     output_switch=base.entity_id if base else None,
                 )
@@ -77,17 +84,21 @@ class SatelLinkLinkSensor(BinarySensorEntity):
         device_name: str,
         link: Link,
         output_switch: str | None,
+        partition: int | None = None,
     ) -> None:
         self._watched = output_switch
         self._link = link
         self._invert = link.invert
         self._attr_unique_id = f"{entry_id}_link_{link.output_number}"
-        self._attr_device_info = DeviceInfo(
+        device_info = DeviceInfo(
             identifiers={(DOMAIN, subentry_id)},
             name=device_name,
             manufacturer="Satel Link Companion",
             model="Koppeling",
         )
+        if partition is not None:
+            device_info["via_device"] = (DOMAIN, f"partition_{partition}")
+        self._attr_device_info = device_info
 
     @property
     def available(self) -> bool:

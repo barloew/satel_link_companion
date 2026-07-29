@@ -121,7 +121,7 @@
         },
         "output_zone": {
           "title": "Koppeling — stap 2/3: selecteer de Satel schakelbare uitgang en de daardoor gevolgde Satel-zone",
-          "description": "Aansturing: {mode}.\n\nSelecteer de Satel schakelbare uitgang en de reeds daaraan gekoppelde Satel-zone die deze uitgang volgt.",
+          "description": "Aansturing: {mode}.\n\nSelecteer de Satel schakelbare uitgang en de reeds daaraan gekoppelde Satel-zone die deze uitgang volgt.\n\nZorg ervoor dat de Satel schakelbare uitgang en Satel-zone reeds in Satel Integra via DLOADX zijn gekoppeld én reeds in de Satel-basisintegratie zijn aangemaakt, zodat ze in onderstaande lijst verschijnen.",
           "data": {
             "output": "Satel schakelbare uitgang",
             "zone": "Gevolgde Satel-zone",
@@ -144,7 +144,8 @@
             "entry_delay_s": "In-/uitloopvertraging (seconden)",
             "min_on_s": "Minimale inschakel-tijd (seconden)",
             "invert": "Polariteit omkeren"
-          }
+          },
+          "description": "Zorg ervoor dat de Satel schakelbare uitgang en Satel-zone reeds in Satel Integra via DLOADX zijn gekoppeld én reeds in de Satel-basisintegratie zijn aangemaakt, zodat ze in onderstaande lijst verschijnen."
         }
       },
       "error": {
@@ -153,7 +154,7 @@
       },
       "abort": {
         "run_discovery_first": "Inventariseer eerst de Satel Integra systeemstructuur (menu: Satel Integra systeemstructuur inventariseren).",
-        "no_linkable_outputs": "Geen koppelbare (schakelbare) uitgangen gevonden. Maak een MONO- of BI-uitgang in DloadX en inventariseer opnieuw."
+        "no_linkable_outputs": "Geen koppelbare (schakelbare) uitgangen gevonden. Maak een MONO- of BI-uitgang in DLOADX, maak 'm aan in de Satel-basisintegratie, en inventariseer opnieuw."
       }
     },
     "control": {

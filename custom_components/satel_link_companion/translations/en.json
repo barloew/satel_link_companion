@@ -121,7 +121,7 @@
         },
         "output_zone": {
           "title": "Link — step 2/3: select the Satel switchable output and the Satel zone that follows it",
-          "description": "Actuation mode: {mode}.\n\nSelect the Satel switchable output and the Satel zone already connected to follow that output.",
+          "description": "Actuation mode: {mode}.\n\nSelect the Satel switchable output and the Satel zone already connected to follow that output.\n\nMake sure the Satel switchable output and Satel zone are already linked in Satel Integra via DLOADX and already created in the Satel base integration, so they appear in the list below.",
           "data": {
             "output": "Satel switchable output",
             "zone": "Satel zone that follows the output",
@@ -144,7 +144,8 @@
             "entry_delay_s": "Entry/exit delay (seconds)",
             "min_on_s": "Minimum on-time (seconds)",
             "invert": "Invert polarity"
-          }
+          },
+          "description": "Make sure the Satel switchable output and Satel zone are already linked in Satel Integra via DLOADX and already created in the Satel base integration, so they appear in the list below."
         }
       },
       "error": {
@@ -153,7 +154,7 @@
       },
       "abort": {
         "run_discovery_first": "Map the Satel Integra system structure first (menu: Map Satel Integra system structure).",
-        "no_linkable_outputs": "No linkable (switchable) outputs found. Add a MONO or BI output in DloadX, then map again."
+        "no_linkable_outputs": "No linkable (switchable) outputs found. Add a MONO or BI output in DLOADX, create it in the Satel base integration, then map again."
       }
     },
     "control": {

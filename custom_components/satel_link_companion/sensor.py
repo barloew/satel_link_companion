@@ -64,9 +64,11 @@ class _LastEventSensor(SensorEntity):
     def __init__(self, entry: "SatelLinkConfigEntry") -> None:
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{self._uid_suffix}"
+        runtime = getattr(entry, "runtime_data", None)
+        hub_name = getattr(runtime, "base_hub_name", None) or "Satel Link Companion"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Satel Link Companion",
+            name=hub_name,
             manufacturer="Satel Link Companion",
             model="Satel Link Companion",
         )

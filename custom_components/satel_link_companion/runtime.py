@@ -174,6 +174,8 @@ class RuntimeData:
     base: Any = None                   # ExistingConfig: base-integration entities
     engine: Any = None                 # LinkEngine: the forwarding listeners
     events: Any = None                 # EventEngine: blockers + breach snapshots
+    base_hub_name: str | None = None   # base hub device name (device org, item 1)
+    base_hub_area_id: str | None = None  # base hub device area
 
 
 OPT_MODEL = "model"
