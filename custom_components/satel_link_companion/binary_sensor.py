@@ -1,13 +1,23 @@
-"""Satel Link Companion — link-status binary sensors.
+"""Satel Link Companion — per-link status sensors.
 
-One per configured link: whether the link is currently forwarding a violation
-to the Satel Integra Panel. That is the driven output's state corrected for
-polarity (invert), so it reads as the logical "violated" the panel sees.
+Each link gets two status sensors on its device, both driven by the forwarding
+engine's logical state (not the base output switch):
 
-Satel Link Companion deliberately does NOT re-create switches or read-only output sensors:
-those already exist in the base integration (satel_integra / ha_satel_integra_ext)
-and Satel Link Companion references them instead of duplicating. The one added entity here
-is the link-status sensor, which is a new concept the base does not provide.
+  * Forwarding ready (the gate) — the intuitive main status: whether the link is
+    currently armed to forward. ALWAYS -> always on; ARMED_ONLY -> on while the
+    partition is armed; ENTRY_DELAY -> on once the exit window has elapsed.
+  * Forwarding active (diagnostic) — whether a violation is being forwarded to
+    the panel right now. Keeps the original sensor's unique_id and "forwarding
+    now" meaning, so existing automations keep working.
+
+Both read the engine, so they reflect intent precisely and never flip to
+"unavailable" when the base output momentarily drops off the bus. Availability
+depends only on whether the base output is resolved at all (stable), so it does
+not flip either.
+
+Satel Link Companion deliberately does NOT re-create the base switches or output
+sensors: those already exist in the base integration and are referenced rather
+than duplicated. These status sensors are a new concept the base does not offer.
 """
 
 from __future__ import annotations
@@ -16,11 +26,11 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.const import STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import DOMAIN, LINK_SUBENTRY_TYPES
 from .runtime import Link
@@ -36,7 +46,7 @@ async def async_setup_entry(
     entry: "SatelLinkConfigEntry",
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Create a link-status sensor per link subentry (one per link device)."""
+    """Create the ready + active status sensors per link subentry."""
     runtime = entry.runtime_data
     outputs = runtime.base.by_number("output") if runtime.base else {}
     zones_by_num = {z.number: z for z in runtime.model.zones} if runtime.model else {}
@@ -45,56 +55,53 @@ async def async_setup_entry(
         if subentry.subentry_type not in LINK_SUBENTRY_TYPES:
             continue
         link = Link.from_dict(dict(subentry.data))
-        base = outputs.get(link.output_number)
-        # Item 2: the link device defaults to its base zone's name; item 3: it
-        # nests under its partition's grouping node.
+        wired = link.output_number in outputs
+        # Item 2: device defaults to its base zone's name; item 3: nests under
+        # its partition's grouping node.
         zone = zones_by_num.get(link.zone_number)
         device_name = zone.ha_name if zone and zone.ha_name else subentry.title
         partition = zone.partition if zone else None
+        common: dict[str, Any] = dict(
+            entry=entry,
+            subentry_id=subentry.subentry_id,
+            device_name=device_name,
+            partition=partition,
+            link=link,
+            wired=wired,
+        )
         async_add_entities(
-            [
-                SatelLinkLinkSensor(
-                    entry_id=entry.entry_id,
-                    subentry_id=subentry.subentry_id,
-                    device_name=device_name,
-                    partition=partition,
-                    link=link,
-                    output_switch=base.entity_id if base else None,
-                )
-            ],
+            [SatelLinkGateSensor(**common), SatelLinkActiveSensor(**common)],
             config_subentry_id=subentry.subentry_id,
         )
 
 
-class SatelLinkLinkSensor(BinarySensorEntity):
-    """Whether a link is currently forwarding a violation to the panel.
-
-    Lives on its own per-link device; the attributes spell out the full chain:
-    Home Assistant source sensor -> Satel switchable output -> Satel zone.
-    """
+class _LinkStatusSensor(BinarySensorEntity):
+    """Base for the per-link status sensors, driven by the forwarding engine."""
 
     _attr_has_entity_name = True
-    _attr_translation_key = "link_forwarding"
+    _attr_should_poll = False
 
     def __init__(
         self,
         *,
-        entry_id: str,
+        entry: "SatelLinkConfigEntry",
         subentry_id: str,
         device_name: str,
         link: Link,
-        output_switch: str | None,
-        partition: int | None = None,
+        partition: int | None,
+        wired: bool,
     ) -> None:
-        self._watched = output_switch
+        self._entry = entry
+        self._subentry_id = subentry_id
         self._link = link
-        self._invert = link.invert
-        self._attr_unique_id = f"{entry_id}_link_{link.output_number}"
+        self._wired = wired
+        self._gate_ready = False
+        self._active = False
         device_info = DeviceInfo(
             identifiers={(DOMAIN, subentry_id)},
             name=device_name,
             manufacturer="Satel Link Companion",
-            model="Koppeling",
+            model="Link",
         )
         if partition is not None:
             device_info["via_device"] = (DOMAIN, f"partition_{partition}")
@@ -102,20 +109,9 @@ class SatelLinkLinkSensor(BinarySensorEntity):
 
     @property
     def available(self) -> bool:
-        if self._watched is None:
-            return False
-        state = self.hass.states.get(self._watched)
-        return state is not None and state.state != STATE_UNAVAILABLE
-
-    @property
-    def is_on(self) -> bool | None:
-        """Forwarding a violation = base output active, corrected for polarity."""
-        if self._watched is None:
-            return None
-        state = self.hass.states.get(self._watched)
-        if state is None:
-            return None
-        return (state.state == STATE_ON) ^ self._invert
+        # Stable: only reflects whether the base output is resolved, never the
+        # output's momentary availability — so this never flips.
+        return self._wired
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -132,13 +128,55 @@ class SatelLinkLinkSensor(BinarySensorEntity):
         }
 
     async def async_added_to_hass(self) -> None:
-        if self._watched is None:
-            return
-
-        @callback
-        def _changed(event) -> None:
-            self.async_write_ha_state()
-
+        engine = getattr(self._entry.runtime_data, "engine", None)
+        if engine is not None:
+            self._gate_ready, self._active = engine.status_for(self._subentry_id)
         self.async_on_remove(
-            async_track_state_change_event(self.hass, [self._watched], _changed)
+            async_dispatcher_connect(
+                self.hass,
+                f"{DOMAIN}_{self._subentry_id}_status",
+                self._on_status,
+            )
         )
+
+    @callback
+    def _on_status(self, gate_ready: bool, active: bool) -> None:
+        self._gate_ready = gate_ready
+        self._active = active
+        self.async_write_ha_state()
+
+
+class SatelLinkGateSensor(_LinkStatusSensor):
+    """Whether the link is currently armed to forward — the intuitive status."""
+
+    _attr_translation_key = "link_ready"
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._attr_unique_id = (
+            f"{self._entry.entry_id}_link_ready_{self._link.output_number}"
+        )
+
+    @property
+    def is_on(self) -> bool:
+        return self._gate_ready
+
+
+class SatelLinkActiveSensor(_LinkStatusSensor):
+    """Whether a violation is being forwarded to the panel right now.
+
+    Keeps the original link sensor's unique_id and "forwarding now" semantics so
+    existing automations keep working — but sourced from the engine's logical
+    state instead of the base output switch, so it no longer flips.
+    """
+
+    _attr_translation_key = "link_active"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._attr_unique_id = f"{self._entry.entry_id}_link_{self._link.output_number}"
+
+    @property
+    def is_on(self) -> bool:
+        return self._active

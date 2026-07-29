@@ -218,8 +218,11 @@
   },
   "entity": {
     "binary_sensor": {
-      "link_forwarding": {
-        "name": "Doorgifte"
+      "link_ready": {
+        "name": "Doorgifte gedeblokkeerd"
+      },
+      "link_active": {
+        "name": "Actieve doorgifte"
       }
     },
     "sensor": {
@@ -232,6 +235,11 @@
       "last_arm_failed": {
         "name": "Laatste inschakelfout"
       }
+    }
+  },
+  "device": {
+    "partition_node": {
+      "name": "Partitie {name} ({number})"
     }
   }
 }

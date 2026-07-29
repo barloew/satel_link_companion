@@ -70,7 +70,7 @@ class _LastEventSensor(SensorEntity):
             identifiers={(DOMAIN, entry.entry_id)},
             name=hub_name,
             manufacturer="Satel Link Companion",
-            model="Satel Link Companion",
+            model="Satel Integra",
         )
         self._when: datetime | None = None
         self._data: dict[str, Any] = {}

@@ -218,8 +218,11 @@
   },
   "entity": {
     "binary_sensor": {
-      "link_forwarding": {
-        "name": "Forwarding"
+      "link_ready": {
+        "name": "Forwarding unblocked"
+      },
+      "link_active": {
+        "name": "Forwarding active"
       }
     },
     "sensor": {
@@ -232,6 +235,11 @@
       "last_arm_failed": {
         "name": "Last arm failed"
       }
+    }
+  },
+  "device": {
+    "partition_node": {
+      "name": "Partition {name} ({number})"
     }
   }
 }

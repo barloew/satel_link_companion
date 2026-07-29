@@ -1,9 +1,8 @@
 # Satel Link Companion
 
-<img src="https://raw.githubusercontent.com/barloew/satel_link_companion/main/custom_components/satel_link_companion/brand/icon.png" alt="Satel Link Companion" width="120" align="right" />
+<img src="https://raw.githubusercontent.com/barloew/satel_link_companion/main/custom_components/satel_link_companion/brand/icon.png" alt="Satel Link Companion" width="120">
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=barloew&repository=satel_link_companion&category=integration)
 
 A Home Assistant companion for the Satel Integra Panel. Satel Link Companion links Home
 Assistant sensors into the Satel Integra Panel as real Satel zones — supervised by
@@ -59,8 +58,8 @@ library is required beyond `cryptography` (already a Home Assistant dependency).
 vendored client is MIT-licensed; see its NOTICE and LICENSE for credit to the upstream
 `satel_integra2` projects.
 
-See the wiki/docs for the full DLOADX checklist, including the polarity (POL.+) and
-user-rights pitfalls.
+See **[Preparation](#preparation)** for the full DLOADX and base-integration checklist,
+including the polarity (POL.+) and user-rights pitfalls.
 
 > **Note.** The runtime architecture and the link test leverage the Satel integration
 > protocol. As with anything alarm-related, confirm the behaviour against your own Satel
@@ -69,6 +68,8 @@ user-rights pitfalls.
 ## Installation
 
 ### HACS (recommended)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=barloew&repository=satel_link_companion&category=integration)
 
 1. In HACS, add this repository as a custom repository
    (`https://github.com/barloew/satel_link_companion`, category *Integration*).
@@ -81,6 +82,70 @@ user-rights pitfalls.
 
 Copy `custom_components/satel_link_companion/` into your Home Assistant
 `config/custom_components/` directory and restart.
+
+## Preparation
+
+Satel Link Companion builds on what your panel and your Satel base integration already
+expose, so a little groundwork up front — first in **DLOADX**, then in the **Satel base
+integration** — makes everything after it smooth. This checklist is aimed at the **link**
+feature in particular.
+
+### In DLOADX (the panel)
+
+- **Switchable outputs.** For every zone you want to drive from Home Assistant, create a
+  switchable output with function **24 (MONO)** or **25 (BI)**. Plain and read-only outputs
+  cannot be linked.
+- **Follow-output zones.** Give each such zone wiring type **8 (Follow output)**, pointing
+  at its output. That is what makes the Satel zone mirror the output — and therefore your
+  Home Assistant sensor.
+- **Polarity (POL.+).** Set the output polarity correctly. It matters even for virtual
+  outputs, and the integration cannot read it back over the protocol. An output wired the
+  other way round reads its zone as violated at rest; you can correct that per link with the
+  *Invert* option, but getting **POL.+** right in DLOADX is cleaner.
+- **Same number for a zone and its output.** By convention Satel Link Companion assumes the
+  zone that follows output *N* is zone *N*. Numbering a zone and its output identically
+  (zone 23 ↔ output 23) keeps the mapping obvious and lets the link flow pre-select the
+  matching zone.
+- **Use 24-hour zone functions — always.** Every follow-output zone should use a
+  **24-hour (continuously monitored)** zone function, because the *when to alarm* decision is
+  made in Home Assistant by Satel Link Companion's forwarding engine, not by the Satel
+  partition. Use **88 (24H Burglary)** for the motion / door / window zones you gate through
+  arming in Home Assistant, and the matching 24-hour fire / gas / water functions for hazard
+  sensors. A non-24-hour zone would only be able to alarm while its Satel partition is armed
+  — double-gating against the link's own forwarding mode and defeating the design. See
+  **[Satel object types](SATEL_TYPES.md)** for the full list of zone functions and wiring
+  types.
+- **Roller shutters.** For a shutter cover, use a roller-shutter output pair (outputs
+  **type 105/106**).
+- **Not-bypassable off.** Leave the *not bypassable* option **off** on any zone you want to
+  run the active link test against — the test bypasses the zone so it can toggle the output
+  without setting off a real alarm.
+- **Partitions for HomeKit modes.** Divide your zones over partitions that map onto the
+  HomeKit arm modes you want — typically an interior partition (Home / Away), a perimeter
+  partition, and a 24-hour / emergency partition. A master panel later drives
+  **Home → arm_home**, **Away → arm_away** and **Night → arm_night**, each over its own
+  partition set, in arm order (interior before perimeter).
+- **A user with the right rights.** Actuating a switchable output needs a Satel user with
+  rights to that output; arming / disarming from a master needs a user with rights on
+  exactly those partitions. Create a dedicated user for Home Assistant rather than sharing
+  your own code.
+
+### In the Satel base integration
+
+Before you touch Satel Link Companion, create and configure the partitions, zones and
+(switchable) outputs in your Satel base integration (`satel_integra` /
+`ha_satel_integra_ext`) — using its *Add partition / Add zone / Add output / Add switchable
+output* steps. Two reasons:
+
+- **They must exist there first.** The link flow only offers zones and outputs that already
+  exist in the base integration, so anything you have not created there will not appear.
+- **Give them recognizable names and locations (areas).** Satel Link Companion adopts those
+  names and areas for its own devices — the hub, each link, and each partition grouping node
+  inherit the name and area of the matching base object. Naming and placing them well once,
+  in the base, is what makes the Satel Link Companion device tree readable later.
+
+With that in place, add the integration and run **Map Satel Integra system structure**, then
+add your links, roller shutters and master panel.
 
 ## Configuration
 
@@ -116,6 +181,27 @@ Each **link** (from a Home Assistant source sensor) can actuate its Satel zone i
   during a configurable entry/exit delay. Best for entry/exit zones.
 
 A minimum on-time keeps brief pulses (a flickering PIR) visible to the panel.
+
+### Devices
+
+Everything you add is its own device, organised to mirror your Satel Integra layout:
+
+- The **hub** device takes the name and area of your Satel base central device.
+- Each **link** device takes the name and area of the base zone it drives, and nests under a
+  **partition** grouping node named after the matching base partition.
+- Names and areas are defaults you can override — rename or move a device in Home Assistant
+  and Satel Link Companion leaves your change alone.
+
+Each link device also carries two status sensors:
+
+- **Forwarding unblocked** — whether the link is currently allowed to forward: always for a
+  continuous link; only while the partition is armed for an arming-based link; from the end
+  of the exit delay for an entry/exit link.
+- **Forwarding active** (diagnostic) — whether a violation is being forwarded to the panel
+  right now.
+
+Both read the forwarding engine's own state, so they stay accurate and do not flicker with
+the base output's momentary availability.
 
 ### Master panel
 

@@ -129,12 +129,21 @@ def async_register_partition_nodes(
             if base_ent is not None
             else (None, None)
         )
+        if name:
+            # Translatable device name: "Partitie … (n)" (nl) / "Partition … (n)".
+            name_args = {
+                "name": None,
+                "translation_key": "partition_node",
+                "translation_placeholders": {"name": name, "number": str(number)},
+            }
+        else:
+            name_args = {"name": f"Partition {number}", "translation_key": None}
         node = dev_reg.async_get_or_create(
             config_entry_id=entry.entry_id,
             identifiers={partition_node_identifier(number)},
-            name=name or f"Partitie {number}",
             manufacturer="Satel Link Companion",
-            model="Partitie",
+            model="Partition",
+            **name_args,
         )
         if node.area_id is None and area_id:
             dev_reg.async_update_device(node.id, area_id=area_id)
@@ -148,7 +157,6 @@ def async_apply_areas(hass: HomeAssistant, entry: "SatelLinkConfigEntry") -> Non
     set via DeviceInfo; only areas are applied here.
     """
     runtime = entry.runtime_data
-    model = runtime.model
     dev_reg = dr.async_get(hass)
 
     # Item 1: hub device area from the base central device.
@@ -157,10 +165,14 @@ def async_apply_areas(hass: HomeAssistant, entry: "SatelLinkConfigEntry") -> Non
         if hub is not None and hub.area_id is None:
             dev_reg.async_update_device(hub.id, area_id=runtime.base_hub_area_id)
 
-    # Item 2: each link device area from its base zone.
-    if model is None:
-        return
-    zones_by_num = {z.number: z for z in model.zones}
+    # Item 2: each link device area from its base zone. Read the zone's area from
+    # the LIVE base registry (re-read every setup) rather than the stored
+    # discovery model -- a model captured before a base/parsing change would
+    # carry a stale (empty) area. Fall back to the model if the live read misses.
+    base_zones = runtime.base.by_number("zone") if runtime.base else {}
+    model_zones = (
+        {z.number: z for z in runtime.model.zones} if runtime.model else {}
+    )
     for subentry in entry.subentries.values():
         if subentry.subentry_type not in LINK_SUBENTRY_TYPES:
             continue
@@ -168,11 +180,15 @@ def async_apply_areas(hass: HomeAssistant, entry: "SatelLinkConfigEntry") -> Non
             link = Link.from_dict(dict(subentry.data))
         except (KeyError, TypeError, ValueError):
             continue
-        zone = zones_by_num.get(link.zone_number)
-        if zone is None or not zone.area_id:
+        base_zone = base_zones.get(link.zone_number)
+        model_zone = model_zones.get(link.zone_number)
+        area_id = (base_zone.area_id if base_zone else None) or (
+            model_zone.area_id if model_zone else None
+        )
+        if not area_id:
             continue
         device = dev_reg.async_get_device(
             identifiers={(DOMAIN, subentry.subentry_id)}
         )
         if device is not None and device.area_id is None:
-            dev_reg.async_update_device(device.id, area_id=zone.area_id)
+            dev_reg.async_update_device(device.id, area_id=area_id)

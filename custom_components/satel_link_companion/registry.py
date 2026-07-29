@@ -27,9 +27,13 @@ _LOGGER = logging.getLogger(__name__)
 # Base integrations we can adopt, best first.
 BASE_DOMAINS = ("satel_integra", "ha_satel_integra_ext")
 
-# Satel object number is encoded in the unique_id; both integrations use a
-# "<something>_<type>_<number>" tail, e.g. "..._zone_12" / "..._output_5".
-_UNIQUE_ID_TAIL = re.compile(r"(?:^|[_-])(zone|output|partition|switch)[_-](\d+)$", re.I)
+# Satel object number is encoded in the unique_id. The base integrations use a
+# "<something>_<type>_<number>" tail, but the exact type word varies: zones are
+# "..._zones_23" (plural), partitions are "..._alarm_panel_2", outputs are
+# "..._output_5". Accept singular/plural and the alarm_panel spelling.
+_UNIQUE_ID_TAIL = re.compile(
+    r"(?:^|[_-])(zones?|outputs?|partitions?|alarm_panel|switch)[_-](\d+)$", re.I
+)
 
 _PLATFORM_TO_KIND = {
     "binary_sensor": "zone",

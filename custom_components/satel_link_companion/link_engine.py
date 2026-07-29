@@ -41,9 +41,10 @@ from typing import TYPE_CHECKING, Callable
 from homeassistant.components.alarm_control_panel import AlarmControlPanelState
 from homeassistant.const import STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
-from .const import StatusForwarding
+from .const import DOMAIN, LINK_SUBENTRY_TYPES, StatusForwarding
 from .runtime import Link
 
 if TYPE_CHECKING:
@@ -70,6 +71,7 @@ class _LinkState:
 
     __slots__ = (
         "link",
+        "subentry_id",
         "output_switch",
         "partition_entity",
         "committed",
@@ -79,15 +81,23 @@ class _LinkState:
         "_ignore_until_clear",
         "_exit_pending",
         "_exit_timer",
+        "_last_published",
     )
 
     def __init__(
-        self, link: Link, output_switch: str | None, partition_entity: str | None
+        self,
+        link: Link,
+        subentry_id: str,
+        output_switch: str | None,
+        partition_entity: str | None,
     ) -> None:
         self.link = link
+        self.subentry_id = subentry_id
         self.output_switch = output_switch
         self.partition_entity = partition_entity
         self.committed: bool = False
+        # Last (gate_ready, active) tuple pushed to the sensors, to de-duplicate.
+        self._last_published: tuple[bool, bool] | None = None
         self._on_since: float = 0.0
         self._entry_timer: Callable[[], None] | None = None
         self._hold_timer: Callable[[], None] | None = None
@@ -150,7 +160,10 @@ class LinkEngine:
         zones = {z.number: z for z in runtime.model.zones} if runtime.model else {}
 
         watched: set[str] = set()
-        for link in runtime.links:
+        for subentry in self._entry.subentries.values():
+            if subentry.subentry_type not in LINK_SUBENTRY_TYPES:
+                continue
+            link = Link.from_dict(dict(subentry.data))
             output = outputs.get(link.output_number)
             zone = zones.get(link.zone_number)
             partition = zone.partition if zone else None
@@ -159,6 +172,7 @@ class LinkEngine:
             )
             state = _LinkState(
                 link=link,
+                subentry_id=subentry.subentry_id,
                 output_switch=output.entity_id if output else None,
                 partition_entity=part_entity,
             )
@@ -192,6 +206,7 @@ class LinkEngine:
             if state.link.forwarding is StatusForwarding.ENTRY_DELAY:
                 state._ignore_until_clear = True
             self._evaluate(state, initial=True)
+            self._publish(state)
 
     async def async_stop(self) -> None:
         for unsub in self._unsubscribe:
@@ -228,28 +243,39 @@ class LinkEngine:
         for state in self._states:
             if state.output_switch is None:
                 continue
-            if entity_id == state.link.source_entity_id and from_unavailable:
-                continue
-            if (
-                arming
-                and entity_id == state.partition_entity
-                and state.link.forwarding is StatusForwarding.ENTRY_DELAY
-            ):
-                # Arming an entry/exit zone: force OFF and open the exit window.
-                # During the window ALL motion is ignored (walking out), and the
-                # forced-off then persists as long as the source stays on.
-                state.cancel_timers()
-                state._ignore_until_clear = True
-                self._commit(state, False)
-                if state.link.entry_delay_s > 0:
-                    state._exit_pending = True
-                    state._exit_timer = async_call_later(
-                        self._hass,
-                        state.link.entry_delay_s,
-                        self._exit_elapsed(state),
-                    )
-                continue
-            self._evaluate(state)
+            self._process_change(state, entity_id, from_unavailable, arming)
+            self._publish(state)
+
+    @callback
+    def _process_change(
+        self,
+        state: _LinkState,
+        entity_id: str,
+        from_unavailable: bool,
+        arming: bool,
+    ) -> None:
+        if entity_id == state.link.source_entity_id and from_unavailable:
+            return
+        if (
+            arming
+            and entity_id == state.partition_entity
+            and state.link.forwarding is StatusForwarding.ENTRY_DELAY
+        ):
+            # Arming an entry/exit zone: force OFF and open the exit window.
+            # During the window ALL motion is ignored (walking out), and the
+            # forced-off then persists as long as the source stays on.
+            state.cancel_timers()
+            state._ignore_until_clear = True
+            self._commit(state, False)
+            if state.link.entry_delay_s > 0:
+                state._exit_pending = True
+                state._exit_timer = async_call_later(
+                    self._hass,
+                    state.link.entry_delay_s,
+                    self._exit_elapsed(state),
+                )
+            return
+        self._evaluate(state)
 
     @callback
     def _evaluate(self, state: _LinkState, *, initial: bool = False) -> None:
@@ -326,6 +352,7 @@ class LinkEngine:
             # The delay is over: forward the violation only if it still stands.
             if self._wants(state) and not state.committed:
                 self._commit(state, True)
+            self._publish(state)
 
         return _fire
 
@@ -334,6 +361,7 @@ class LinkEngine:
         def _fire(_now) -> None:
             state._hold_timer = None
             self._evaluate(state)
+            self._publish(state)
 
         return _fire
 
@@ -347,6 +375,7 @@ class LinkEngine:
             # until it clears; only a fresh violation after that starts the
             # entry delay.
             self._evaluate(state)
+            self._publish(state)
 
         return _fire
 
@@ -373,3 +402,31 @@ class LinkEngine:
             return False
         panel = self._hass.states.get(state.partition_entity)
         return panel is not None and panel.state in _ARMED_STATES
+
+    def _gate_ready(self, state: _LinkState) -> bool:
+        """Whether the link is currently armed to forward (the gate status).
+
+        ALWAYS      -> always ready (24h monitored).
+        ARMED_ONLY  -> ready while the zone's partition is armed.
+        ENTRY_DELAY -> ready once the exit window after arming has elapsed.
+
+        Independent of whether a violation is happening right now.
+        """
+        return self._gate_open(state) and not state._exit_pending
+
+    def _publish(self, state: _LinkState) -> None:
+        """Push (gate_ready, active) to the link's sensors when it changes."""
+        status = (self._gate_ready(state), state.committed)
+        if status == state._last_published:
+            return
+        state._last_published = status
+        async_dispatcher_send(
+            self._hass, f"{DOMAIN}_{state.subentry_id}_status", *status
+        )
+
+    def status_for(self, subentry_id: str) -> tuple[bool, bool]:
+        """Current (gate_ready, active) for a link, for a sensor's initial state."""
+        for state in self._states:
+            if state.subentry_id == subentry_id:
+                return (self._gate_ready(state), state.committed)
+        return (False, False)
