@@ -111,9 +111,21 @@ class SatelLinkMasterPanel(AlarmControlPanelEntity):
 
     @property
     def alarm_state(self) -> AlarmControlPanelState:
-        """Last commanded state, unless every partition is disarmed."""
-        if self._commanded is AlarmControlPanelState.DISARMED:
-            return AlarmControlPanelState.DISARMED
+        """Last commanded state, unless every partition is disarmed.
+
+        DISARMED and ARMING are reported as-is. The "fall back to disarmed when
+        every partition is disarmed" rule applies only to a committed *armed*
+        state, so an external keypad disarm is still reflected. Applying it
+        during ARMING would hide the arming attempt: a blocked or failed arm
+        (where no partition ever armed) would then emit no state change at all,
+        leaving HomeKit stuck on "Arming…". Reporting ARMING guarantees the
+        disarmed→arming→disarmed transitions that let HomeKit resolve the tile.
+        """
+        if self._commanded in (
+            AlarmControlPanelState.DISARMED,
+            AlarmControlPanelState.ARMING,
+        ):
+            return self._commanded
         if self._all_partitions_disarmed():
             return AlarmControlPanelState.DISARMED
         return self._commanded
