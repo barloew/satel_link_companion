@@ -5,11 +5,14 @@ automations (Settings → Automations → Trigger → *Event*), or read the last
 breach directly from the diagnostic **Last breach** sensor.
 
 All three carry a `partition` (the Satel partition number) and, where relevant, a
-`zones` list. Each zone is `{"number": <int>, "name": <str>, "function": <str|null>, "area": <str|null>}`, where
+`zones` list. Each zone is `{"number": <int>, "name": <str>, "function": <str|null>, "area": <str|null>, "partition": <str|null>}`, where
 `name` is the zone's current Home Assistant friendly name and `area` its area
 name (from the entity, or inherited from its device) — both resolved live, so a
 rename or a move to another area takes effect without re-running discovery.
-`area` is `null` when the zone has no area.
+`area` is `null` when the zone has no area. `partition` is the zone's Satel
+partition as a readable `Name (Number)` label (e.g. `Omtrek Beneden (1)`);
+it is set on `arm_blocked` zones so a consolidated block that spans several
+partitions can still show where each zone lives.
 
 > The notify examples use `notify.send_message`, the entity notify action
 > ([docs](https://www.home-assistant.io/integrations/notify/)). Replace
@@ -59,6 +62,12 @@ breach, and its attributes hold `partition`, `window_s`, `zones` and
 ---
 
 ## `satel_link_companion_arm_blocked`
+
+> The service `satel_link_companion.check_arm` fires this for a single
+> partition. The **master panel** instead runs one *pre-flight* over all of
+> a mode's partitions before arming anything and fires **one consolidated**
+> event listing every open zone across those partitions (each zone carries
+> its own `partition` label). Nothing is armed while anything is open.
 
 Fired when an arm is refused because one or more zones are currently violated
 (open door, active motion). Raised by the pre-arm check, including the master

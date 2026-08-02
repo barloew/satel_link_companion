@@ -77,7 +77,17 @@ class MasterEngine:
         return self._entities_for(self._master.all_partitions())
 
     async def async_arm(self, ha_state: str, code: str | None) -> bool:
-        """Arm a mode's partitions sequentially. Returns True on full success."""
+        """Arm a mode's partitions. Returns True on full success.
+
+        A pre-flight blocker check runs over ALL of the mode's partitions
+        *before* anything is armed, so every open zone is reported at once — one
+        consolidated ``satel_link_companion_arm_blocked`` — instead of one
+        partition at a time (arm, fix a zone, arm again, hear the next). Nothing
+        is armed while anything is open.
+
+        Arming is then sequential and each partition is confirmed; a partition
+        that never confirms rolls the whole attempt back.
+        """
         if self._master is None:
             return False
 
@@ -85,19 +95,18 @@ class MasterEngine:
         entities = self.partition_entities_for(ha_state)
         if not entities:
             return False
+
+        # 1. Pre-flight over the whole mode. One event, nothing armed if blocked.
+        events = self._entry.runtime_data.events
+        if events is not None:
+            first, blocked = events.arm_blockers_for(list(entities))
+            if blocked:
+                events.fire_arm_blocked(blocked, first)
+                return False
+
+        # 2. Arm sequentially; an unconfirmed partition rolls the lot back.
         armed: list[str] = []
-
         for partition, entity_id in entities.items():
-            # 1. Blocker check (module D). check_arm also fires arm_blocked.
-            events = self._entry.runtime_data.events
-            if events is not None:
-                blockers = await events.async_check_arm(partition)
-                if blockers:
-                    await self._rollback(armed, code)
-                    self._fire_failed(partition, "blocked", blockers)
-                    return False
-
-            # 2 + 3. Arm and wait for confirmation.
             if not await self._arm_partition(entity_id, service, code):
                 await self._rollback(armed, code)
                 self._fire_failed(partition, "no_confirmation")

@@ -239,7 +239,7 @@
   },
   "device": {
     "partition_node": {
-      "name": "Partition {name} ({number})"
+      "name": "{name} ({number})"
     }
   }
 }

@@ -130,7 +130,8 @@ def async_register_partition_nodes(
             else (None, None)
         )
         if name:
-            # Translatable device name: "Partitie … (n)" (nl) / "Partition … (n)".
+            # Translatable device name: "{name} (n)". The device model
+            # ("Partition") conveys the type, so the name itself is not prefixed.
             name_args = {
                 "name": None,
                 "translation_key": "partition_node",

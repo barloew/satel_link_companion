@@ -178,9 +178,25 @@ class EventEngine:
             window,
         )
 
-    async def async_check_arm(self, partition: int) -> list[dict]:
-        """Active pre-arm check: return the zones blocking an arm, and fire
-        `satel_link_companion_arm_blocked` if there are any."""
+    def _partition_label(self, partition: int) -> str:
+        """Partition as "Name (Number)" — the same convention as the UI node."""
+        base = self._entry.runtime_data.base
+        entity = (
+            base.by_number("partition").get(partition) if base is not None else None
+        )
+        name = (
+            self._live_name(entity.entity_id, f"Partitie {partition}")
+            if entity is not None
+            else f"Partitie {partition}"
+        )
+        return f"{name} ({partition})"
+
+    def _blocker_payload(self, partition: int) -> list[dict]:
+        """Zones blocking an arm of one partition, as event payload — WITHOUT
+        firing. Callers decide: the per-partition service fires one event; the
+        master aggregates several partitions into one consolidated event. Each
+        zone carries its partition as a readable "Name (Number)" label.
+        """
         runtime = self._entry.runtime_data
         if runtime.model is None or runtime.base is None:
             return []
@@ -194,8 +210,9 @@ class EventEngine:
             state = self._hass.states.get(entity.entity_id)
             return state is not None and state.state == STATE_ON
 
+        label = self._partition_label(partition)
         blockers = find_blockers(partition, runtime.model.zones, is_violated)
-        payload = [
+        return [
             {
                 "number": b.number,
                 "name": self._live_name(
@@ -210,11 +227,45 @@ class EventEngine:
                     if b.number in zone_entities
                     else None
                 ),
+                "partition": label,
             }
             for b in blockers
         ]
+
+    async def async_check_arm(self, partition: int) -> list[dict]:
+        """Active pre-arm check for ONE partition: return the blocking zones and
+        fire `satel_link_companion_arm_blocked` if there are any."""
+        payload = self._blocker_payload(partition)
         if payload:
             self._hass.bus.async_fire(
                 EVENT_ARM_BLOCKED, {"partition": partition, "zones": payload}
             )
         return payload
+
+    @callback
+    def arm_blockers_for(
+        self, partitions: list[int]
+    ) -> tuple[int | None, list[dict]]:
+        """Aggregate blocking zones across several partitions, WITHOUT firing.
+
+        Returns (first_blocked_partition, zones) so the master can run one
+        pre-flight over a whole mode and report every open zone at once,
+        instead of one partition at a time.
+        """
+        first: int | None = None
+        zones: list[dict] = []
+        for partition in partitions:
+            payload = self._blocker_payload(partition)
+            if payload and first is None:
+                first = partition
+            zones.extend(payload)
+        return first, zones
+
+    @callback
+    def fire_arm_blocked(self, zones: list[dict], partition: int | None) -> None:
+        """Fire one consolidated `satel_link_companion_arm_blocked` event."""
+        if not zones:
+            return
+        self._hass.bus.async_fire(
+            EVENT_ARM_BLOCKED, {"partition": partition, "zones": zones}
+        )
