@@ -2,68 +2,67 @@
 
 <img src="https://raw.githubusercontent.com/barloew/satel_link_companion/main/custom_components/satel_link_companion/brand/icon.png" alt="Satel Link Companion" width="120">
 
+[![Validate](https://github.com/barloew/satel_link_companion/actions/workflows/validate.yml/badge.svg)](https://github.com/barloew/satel_link_companion/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/barloew/satel_link_companion?display_name=tag)](https://github.com/barloew/satel_link_companion/releases)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 
-A Home Assistant companion for the Satel Integra Panel. Satel Link Companion links Home
-Assistant sensors into the Satel Integra Panel as real Satel zones — supervised by
-the panel and armed together with their partition — bundles
-available Satel roller-shutter output pairs into a single Home Assistant cover unit, and
-lets you expose one (HomeKit-compatible) master alarm panel that arms and disarms several
-Satel Integra partitions as a single unit.
+**Bring your Satel Integra alarm and Home Assistant closer together: use any Home Assistant
+sensor as a real Satel zone, control your whole system from one HomeKit-friendly panel, and
+automate the rest.**
 
-It leverages an existing Satel base integration rather than replacing it. The Satel ETHM-1
-module accepts only one client on its integration port, so at runtime Satel Link Companion
-holds no connection of its own: it actuates the base integration's output switches and
-reads arm state from its `alarm_control_panel` entities. The only direct connection is a
-one-off scan to map the Satel Integra system structure.
+Satel Link Companion sits on top of the Satel base integration you already use and adds the
+things it can't do on its own. It never opens a second connection to your panel — the Satel
+network module allows only one — so it works entirely through your existing integration.
 
-## Existing Satel Integra base integration capabilities
+## Is this for you?
 
-Your Satel Integra base integration already exposes the panel's objects in Home Assistant.
-Satel Link Companion does **not** duplicate those; it leverages and extends them.
+**① You have a Satel Integra with an ETHM-1 module (not the Plus) — so you have no "virtual zones".**
+Normally that means Home Assistant can *read* your Satel zones, but can't turn a Home
+Assistant sensor into a real Satel one. Satel Link Companion gives you exactly that: pick any
+Home Assistant sensor — a Zigbee door contact, a Z-Wave smoke or CO alarm, a motion sensor —
+and it becomes a genuine Satel zone, supervised by the panel and armed together with its
+partition. (ETHM-1 Plus owners can use this too.)
 
-| Satel object | Base integration | Direction | Capability |
-|---|---|---|---|
-| Zone | `binary_sensor` | Satel → HA | monitor a Satel detection / temperature point in Home Assistant |
-| Virtual Zone | `switch` | HA → Satel | actuate a Satel zone from Home Assistant (ETHM-1 Plus only) |
-| Output | `binary_sensor` | Satel → HA | read-only Satel device / event status in Home Assistant |
-| Switchable output | `switch` | HA → Satel | actuate a Satel switch from Home Assistant |
+**② You use HomeKit and want one alarm tile for your whole house.**
+HomeKit only controls one Satel partition per accessory, so with several partitions you're
+stuck arming them one at a time. Satel Link Companion gives you a single **master alarm panel**
+that arms and disarms all the partitions you choose as one unit — with its own set of
+partitions for Home, Away and Night — and it's fully HomeKit-compatible.
 
-## What Satel Link Companion adds on top
+**③ You want smarter arming, notifications and automations.**
+Before it arms, it checks every partition and tells you — all at once — which doors or windows
+are still open, so you're not fixing one and then discovering the next. It fires **events** you
+can build automations on (an alarm went off; an arm was blocked; an arm failed) and mirrors
+them as sensors, so a WhatsApp or Sonos notification is easy to wire up.
 
-| Built from | Satel Link Companion | Direction | Capability |
-|---|---|---|---|
-| Switchable output + zone that follows it | `link` | HA → Satel | actuate a Satel zone with any Home Assistant sensor (ETHM-1-compatible) |
-| Switchable output pair | `cover` | HA → Satel | control a Satel roller shutter as a single unit from Home Assistant |
-| Partitions | `alarm_control_panel` | (HomeKit) → HA → Satel | a single alarm-panel tile in Home Assistant (HomeKit compatible) |
+**④ You just want to control a roller shutter.**
+If your shutters run on Satel output pairs, Satel Link Companion bundles each up/down pair into
+a single Home Assistant **cover** you can open, close and stop like any other.
 
-Plus diagnostic **event sensors** and an active **pre-arm blocker check** (see below).
+### Why not just connect the sensor to Satel directly?
+
+Suppose you let a Home Assistant sensor switch a Satel output, and you link a Satel zone to that
+output. That zone would be a **24-hour** zone — and a 24-hour zone goes straight into alarm the
+moment it's tripped, whether the alarm is armed or not.
+
+- For a **hazard sensor** (smoke, CO, gas, water) that's exactly right — you always want it to go
+  off, at home or away.
+- For **burglary** it's no good — a motion sensor or a door would trip the alarm while you're
+  sitting on the couch.
+
+Satel Link Companion does the smart part in Home Assistant: it only forwards a burglary sensor to
+the panel **after you've armed that partition** (optionally with an entry/exit delay), so it acts
+like a normal alarm zone. Hazard sensors you simply set to “always”, and they work exactly like a
+direct connection — now all in one place.
 
 ## Requirements
 
-- **Home Assistant 2025.7 or newer** (the integration uses config sub-entries).
-  The integration icon shows automatically on HA 2026.3+; on older versions it
-  falls back to a default icon.
-- An **INTEGRA** or **INTEGRA Plus** panel (not VERSA/PERFECTA).
-- An **ETHM-1** or **ETHM-1 Plus** module, with *Integration* enabled in DLOADX.
-- A working Satel base integration in Home Assistant — either
-  [`satel_integra`](https://www.home-assistant.io/integrations/satel_integra/)
-  (core) or `ha_satel_integra_ext`.
-- For linking: a switchable output (function **24 MONO** or **25 BI**) and a zone
-  with wiring type **8 (follow output)**, plus a user with rights to that output.
-
-The protocol client that performs Satel Integra system-structure mapping and zone bypass
-is bundled (vendored) in `custom_components/satel_link_companion/vendor/`, so no extra
-library is required beyond `cryptography` (already a Home Assistant dependency). The
-vendored client is MIT-licensed; see its NOTICE and LICENSE for credit to the upstream
-`satel_integra2` projects.
-
-See **[Preparation](#preparation)** for the full DLOADX and base-integration checklist,
-including the polarity (POL.+) and user-rights pitfalls.
-
-> **Note.** The runtime architecture and the link test leverage the Satel integration
-> protocol. As with anything alarm-related, confirm the behaviour against your own Satel
-> alarm panel hardware before you rely on it.
+- Home Assistant **2025.7 or newer**
+- A Satel **INTEGRA** or **INTEGRA Plus** panel with an **ETHM-1** or **ETHM-1 Plus** module,
+  with *Integration* enabled
+- A working Satel base integration —
+  [`satel_integra`](https://www.home-assistant.io/integrations/satel_integra/) (core) or
+  `ha_satel_integra_ext`
 
 ## Installation
 
@@ -73,266 +72,45 @@ including the polarity (POL.+) and user-rights pitfalls.
 
 1. In HACS, add this repository as a custom repository
    (`https://github.com/barloew/satel_link_companion`, category *Integration*).
-2. Install **Satel Link Companion**.
-3. Restart Home Assistant.
-4. Add the integration under *Settings → Devices & Services → Add Integration →
-   Satel Link Companion*.
+2. Install **Satel Link Companion** and restart Home Assistant.
+3. Add it under *Settings → Devices & Services → Add Integration → Satel Link Companion*.
 
 ### Manual
 
 Copy `custom_components/satel_link_companion/` into your Home Assistant
-`config/custom_components/` directory and restart.
+`config/custom_components/` folder and restart.
 
-## Preparation
+## Setup
 
-Satel Link Companion builds on what your panel and your Satel base integration already
-expose, so a little groundwork up front — first in **DLOADX**, then in the **Satel base
-integration** — makes everything after it smooth. This checklist is aimed at the **link**
-feature in particular.
+Setup adopts your existing Satel base integration automatically. From the integration page you
+then add what you need — each becomes its own device:
 
-### In DLOADX (the panel)
+- **Link a sensor** — turn a Home Assistant sensor into a Satel zone
+- **Roller shutter** — bundle an up/down output pair into one cover
+- **Master panel** — one alarm tile for several partitions
 
-- **Switchable outputs.** For every zone you want to drive from Home Assistant, create a
-  switchable output with function **24 (MONO)** or **25 (BI)**. Plain and read-only outputs
-  cannot be linked.
-- **Follow-output zones.** Give each such zone wiring type **8 (Follow output)**, pointing
-  at its output. That is what makes the Satel zone mirror the output — and therefore your
-  Home Assistant sensor.
-- **Polarity (POL.+).** Set the output polarity correctly. It matters even for virtual
-  outputs, and the integration cannot read it back over the protocol. An output wired the
-  other way round reads its zone as violated at rest; you can correct that per link with the
-  *Invert* option, but getting **POL.+** right in DLOADX is cleaner.
-- **Same number for a zone and its output.** By convention Satel Link Companion assumes the
-  zone that follows output *N* is zone *N*. Numbering a zone and its output identically
-  (zone 23 ↔ output 23) keeps the mapping obvious and lets the link flow pre-select the
-  matching zone.
-- **Use 24-hour zone functions — always.** Every follow-output zone should use a
-  **24-hour (continuously monitored)** zone function, because the *when to alarm* decision is
-  made in Home Assistant by Satel Link Companion's forwarding engine, not by the Satel
-  partition. Use **88 (24H Burglary)** for the motion / door / window zones you gate through
-  arming in Home Assistant, and the matching 24-hour fire / gas / water functions for hazard
-  sensors. A non-24-hour zone would only be able to alarm while its Satel partition is armed
-  — double-gating against the link's own forwarding mode and defeating the design. See
-  **[Satel object types](SATEL_TYPES.md)** for the full list of zone functions and wiring
-  types.
-- **Roller shutters.** For a shutter cover, use a roller-shutter output pair (outputs
-  **type 105/106**).
-- **Not-bypassable off.** Leave the *not bypassable* option **off** on any zone you want to
-  run the active link test against — the test bypasses the zone so it can toggle the output
-  without setting off a real alarm.
-- **Partitions for HomeKit modes.** Divide your zones over partitions that map onto the
-  HomeKit arm modes you want — typically an interior partition (Home / Away), a perimeter
-  partition, and a 24-hour / emergency partition. A master panel later drives
-  **Home → arm_home**, **Away → arm_away** and **Night → arm_night**, each over its own
-  partition set, in arm order (interior before perimeter).
-- **A user with the right rights.** Actuating a switchable output needs a Satel user with
-  rights to that output; arming / disarming from a master needs a user with rights on
-  exactly those partitions. Create a dedicated user for Home Assistant rather than sharing
-  your own code.
+There's a one-off **“Map Satel Integra system structure”** scan first, so it knows your panel's
+layout.
 
-### In the Satel base integration
+> **Before your first link:** a few things need to be set correctly on the Satel side (output
+> type, zone wiring, user rights). The **[Advanced guide](Advanced.md)** has a short checklist —
+> worth two minutes before you start.
 
-Before you touch Satel Link Companion, create and configure the partitions, zones and
-(switchable) outputs in your Satel base integration (`satel_integra` /
-`ha_satel_integra_ext`) — using its *Add partition / Add zone / Add output / Add switchable
-output* steps. Two reasons:
+## Learn more
 
-- **They must exist there first.** The link flow only offers zones and outputs that already
-  exist in the base integration, so anything you have not created there will not appear.
-- **Give them recognizable names and locations (areas).** Satel Link Companion adopts those
-  names and areas for its own devices — the hub, each link, and each partition grouping node
-  inherit the name and area of the matching base object. Naming and placing them well once,
-  in the base, is what makes the Satel Link Companion device tree readable later.
+- **[Advanced guide](Advanced.md)** — the DLOADX checklist, the master panel in depth, how to
+  verify a link, and how links behave at the edges (fail-silent, entry/exit)
+- **[Events & automation](EVENTS.md)** — event payloads and example automations
+- **[Satel object types](SATEL_TYPES.md)** — zone functions, wiring types and output functions,
+  taken from the Satel manuals
 
-With that in place, add the integration and run **Map Satel Integra system structure**, then
-add your links, roller shutters and master panel.
+## A note on safety
 
-## Configuration
-
-Setup adopts your Satel Integra base integration (host, port, code) automatically. From the
-integration page you then **add** links, roller shutters and master panels — each becomes
-its own device — and use the options menu for discovery and the guard-time window settings:
-
-- **Map Satel Integra system structure** — a one-off scan of the panel. It briefly unloads
-  the base integration (one client at a time), then reloads it. The result is cached.
-- **Link a sensor** — pick a Home Assistant source sensor, a Satel switchable output and the
-  Satel zone that follows it. Satel Link Companion validates the combination (function,
-  device class) and lets you select when to actuate the linked Satel zone.
-- **HA roller shutter** — bundle a roller-shutter output pair (up/down) into one `cover`.
-  Plain switches and read-only outputs are not duplicated here: your Satel base integration
-  already provides those, and Satel Link Companion references them rather than creating a
-  second copy.
-- **Master panel** — one `alarm_control_panel` that arms several partitions as a unit
-  (see below).
-- **Settings** — the breach guard-time window, system-wide with an optional per-partition
-  override.
-
-### Satel zone actuation
-
-Each **link** (from a Home Assistant source sensor) can actuate its Satel zone in three ways:
-
-- **Continuously** — a breached source sensor immediately violates the Satel zone and always
-  triggers an alarm, even when the partition is disarmed. Best for monitoring heat / smoke /
-  gas / moisture hazards.
-- **Via partition arming** — a breached source sensor violates the Satel zone, which then
-  triggers an alarm only after the partition is armed. Best for burglary protection; in
-  particular a solution for ETHM-1-based panels that lack the ETHM-1 Plus Virtual Zone capability.
-- **Via partition arming — with entry/exit delay** — as above, but breach status is blocked
-  during a configurable entry/exit delay. Best for entry/exit zones.
-
-A minimum on-time keeps brief pulses (a flickering PIR) visible to the panel.
-
-### Devices
-
-Everything you add is its own device, organised to mirror your Satel Integra layout:
-
-- The **hub** device takes the name and area of your Satel base central device.
-- Each **link** device takes the name and area of the base zone it drives, and nests under a
-  **partition** grouping node named after the matching base partition.
-- Names and areas are defaults you can override — rename or move a device in Home Assistant
-  and Satel Link Companion leaves your change alone.
-
-Each link device also carries two status sensors:
-
-- **Forwarding unblocked** — whether the link is currently allowed to forward: always for a
-  continuous link; only while the partition is armed for an arming-based link; from the end
-  of the exit delay for an entry/exit link.
-- **Forwarding active** (diagnostic) — whether a violation is being forwarded to the panel
-  right now.
-
-Both read the forwarding engine's own state, so they stay accurate and do not flicker with
-the base output's momentary availability.
-
-### Master panel
-
-HomeKit couples one accessory to one alarm panel, so with several partitions you can
-normally control only one at a time from HomeKit. A master panel aggregates several
-partitions into one `alarm_control_panel` tile.
-
-- Partitions arm **in the order you set** (interior before perimeter, say), each verified
-  before the next. The pre-arm blocker check (see below) runs first for every partition.
-- If a partition does not confirm, the master **rolls back** — it disarms whatever it already
-  armed and fires `satel_link_companion_arm_failed` — so the tile never claims "armed" while
-  the system is only half-armed.
-- Each mode drives **its own set of partitions**, in arm order: **Home** → `alarm_arm_home`
-  (the Satel mode follows your `arm_home_mode`), **Away** → `alarm_arm_away`, **Night** →
-  `alarm_arm_night`. Leave a mode empty and the panel does not offer it. Disarm ("off")
-  disarms every partition any mode uses, in numeric order.
-
-**Code handling.** Arming a partition needs a user code. Satel Link Companion never stores
-it — it passes through whatever Home Assistant supplies:
-
-- In the normal HA UI, HA prompts for the code and passes it on. The user whose code is
-  entered must have rights on **all** partitions in the master.
-- HomeKit cannot prompt for a code, so supply it in the HomeKit bridge config:
-
-  ```yaml
-  homekit:
-    - name: HA Bridge
-      # ...
-      entity_config:
-        alarm_control_panel.alarm_master:
-          code: !secret alarm_panel_usercode
-  ```
-
-  Use a dedicated Satel user with arm/disarm rights on exactly the master's partitions,
-  rather than sharing your own code.
-
-## Events and services
-
-Satel Link Companion fires events you can build automations on:
-
-- `satel_link_companion_arm_blocked` — partition plus the burglary zones that would block an arm.
-- `satel_link_companion_breach` — partition plus the zones breached in the guard-time window
-  before the partition was triggered.
-- `satel_link_companion_arm_failed` — partition plus the reason a master arm was rolled back
-  (blocked, or no confirmation).
-
-Each event is also surfaced as a diagnostic sensor — **Last breach**, **Last arm blocked**
-and **Last arm failed** — whose state is the time of the last such event and whose
-attributes carry the partition and the zones involved. See [`EVENTS.md`](EVENTS.md) for the
-full payloads and example automations.
-
-And a service for an active pre-arm check:
-
-- `satel_link_companion.check_arm` — returns the zones blocking an arm for a partition (and
-  fires `satel_link_companion_arm_blocked`). Use it to notify or to hold off before arming.
-
-## Verifying a link
-
-Two parameters that carry a link cannot be read over the Satel Integra integration protocol
-— the wiring type and the output polarity — so Satel Link Companion verifies them instead:
-
-- A **passive coherence check** compares the output and zone at rest; an inverted polarity
-  shows up as a zone violated while idle.
-- An **active link test** bypasses the zone (so it cannot trigger an alarm), toggles the
-  output, and checks the zone follows.
-
-## Inner workings
-
-For the advanced Home Assistant user who wants to know exactly how a link behaves at the
-edges. All of this follows a fail-silent principle: whenever something breaks, the Satel
-zone returns to rest (off) — never to a spurious alarm.
-
-### Fail-silent rest state — `not_from`, no `not_to`
-
-A link mirrors its Home Assistant source onto the switchable output: source `on` → output
-actuated (the zone is violated); anything else → output at rest. "Anything else"
-deliberately includes `unavailable` and `unknown`, so a dropped sensor, a Home Assistant
-restart, or an ETHM-1 hiccup returns the zone to rest rather than raising an alarm.
-
-Two edge rules make this robust (mirrored from a hand-tuned production automation):
-
-- **`not_from` — ignore recovery.** A source transition *from* `unavailable` / `unknown` is
-  skipped. A sensor that reconnects and happens to report `on` is not a fresh detection, so
-  it does not raise the output. Without this, every reconnect that lands on `on` would trip
-  the zone.
-- **No `not_to` — honour dropout.** A source transition *to* `unavailable` / `unknown` is
-  **not** skipped: it falls through to "not on" and drives the output off. A sensor that
-  drops out while detecting therefore returns the zone to rest, instead of leaving it stuck
-  violated.
-
-Net rule: `off → on` raises; every other change (including any transition *to* unavailable)
-lowers; transitions *from* unavailable are ignored.
-
-### Entry / exit zones — the exit window
-
-An **entry-delay** link is the entry/exit-zone mode, and it treats the arming moment
-specially so that walking out and in never false-triggers:
-
-- **On arming**, the output is forced off and an **exit window** of `entry_delay_s` opens.
-  During that window *all* motion is ignored — even motion that starts after you armed (you
-  walking to the door). The forced-off then **persists as long as the source stays on**, so
-  you are never caught mid-exit.
-- **After** the exit window closes *and* the source has returned to rest, a fresh violation
-  starts the **entry delay** (`entry_delay_s`). Disarm within it and no alarm fires;
-  otherwise the zone violates.
-- **On a restart while armed**, the link treats startup like an arming moment — it starts at
-  rest and ignores motion already present — so a reboot can never instantly alarm an entry
-  zone.
-
-### Other behaviours
-
-- **Forwarding gate.** *Continuously* forwards always; *via partition arming* forwards only
-  while the zone's partition is armed; *entry delay* is the mode above.
-- **Minimum on-time (`min_on_s`).** Holds the output on for at least this long, so a brief
-  pulse (a flickering PIR, a fast reed contact) stays visible to the panel instead of being
-  missed.
-- **Invert.** Corrects the output polarity (DLOADX `POL.+`), which the protocol cannot read;
-  an inverted link reports "violated" when the output is off.
-- **No runtime socket.** The ETHM-1 allows one client, so at runtime the companion never
-  connects: it calls the base integration's `switch` services to drive outputs and reads
-  partition state from the base `alarm_control_panel` entities, reacting to Home Assistant
-  state-change events. The single direct connection is the one-off structure scan.
-- **Master arming.** Partitions arm sequentially in your set order; each is checked for
-  blockers and confirmed before the next, and any failure rolls the whole attempt back so
-  the tile never reports a half-armed system.
-- **Breach snapshot.** When a partition goes to *triggered*, the companion looks back over
-  the guard-time window at recent zone violations to report which zones were involved.
+This drives a real alarm system. It's built to fail safe — if a sensor drops out or Home
+Assistant restarts, a linked zone returns to rest rather than raising a false alarm — but always
+confirm the behaviour against your own hardware before you rely on it.
 
 ## License
 
-Released under the [MIT License](LICENSE).
-
-Not affiliated with SATEL sp. z o.o. "Satel" and "Integra" are trademarks of their
-respective owner.
+Released under the [MIT License](LICENSE). Not affiliated with SATEL sp. z o.o. “Satel” and
+“Integra” are trademarks of their respective owner.
