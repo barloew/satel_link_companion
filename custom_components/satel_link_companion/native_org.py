@@ -47,13 +47,33 @@ def partition_node_identifier(number: int) -> tuple[str, str]:
 
 
 @callback
+def _device_by_identifier(
+    dev_reg: dr.DeviceRegistry,
+    identifier: tuple[str, str],
+    config_entry_id: str,
+) -> dr.DeviceEntry | None:
+    """Look up a device by a single identifier, owned by a config entry.
+
+    ``async_get_device(identifiers=...)`` was deprecated in HA 2026.8 and will be
+    removed in 2027.8, because identifiers are no longer unique across config
+    entries. ``async_get_device_by_identifier`` replaces it, but it does not
+    exist on older Home Assistant, so fall back to the old call there (this
+    integration supports HA 2025.7+).
+    """
+    getter = getattr(dev_reg, "async_get_device_by_identifier", None)
+    if getter is not None:
+        return getter(identifier, config_entry_id)
+    return dev_reg.async_get_device(identifiers={identifier})
+
+
+@callback
 def base_hub_name_area(
     hass: HomeAssistant, base_entry: "ConfigEntry"
 ) -> tuple[str | None, str | None]:
     """Name + area_id of the base integration's top-level (central) device."""
     dev_reg = dr.async_get(hass)
-    device = dev_reg.async_get_device(
-        identifiers={(base_entry.domain, base_entry.entry_id)}
+    device = _device_by_identifier(
+        dev_reg, (base_entry.domain, base_entry.entry_id), base_entry.entry_id
     )
     if device is None:
         # Fall back to the base entry's top-level device (no parent).
@@ -162,7 +182,9 @@ def async_apply_areas(hass: HomeAssistant, entry: "SatelLinkConfigEntry") -> Non
 
     # Item 1: hub device area from the base central device.
     if runtime.base_hub_area_id:
-        hub = dev_reg.async_get_device(identifiers={(DOMAIN, entry.entry_id)})
+        hub = _device_by_identifier(
+            dev_reg, (DOMAIN, entry.entry_id), entry.entry_id
+        )
         if hub is not None and hub.area_id is None:
             dev_reg.async_update_device(hub.id, area_id=runtime.base_hub_area_id)
 
@@ -188,8 +210,8 @@ def async_apply_areas(hass: HomeAssistant, entry: "SatelLinkConfigEntry") -> Non
         )
         if not area_id:
             continue
-        device = dev_reg.async_get_device(
-            identifiers={(DOMAIN, subentry.subentry_id)}
+        device = _device_by_identifier(
+            dev_reg, (DOMAIN, subentry.subentry_id), entry.entry_id
         )
         if device is not None and device.area_id is None:
             dev_reg.async_update_device(device.id, area_id=area_id)
